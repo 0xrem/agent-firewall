@@ -91,6 +91,7 @@ __all__ = [
     "ApprovalRequest",
     "ApprovalResponse",
     "StaticApprovalHandler",
+    "TerminalApprovalHandler",
     "approve_all",
     "deny_all",
     "normalize_approval_response",
@@ -100,7 +101,7 @@ __all__ = [
 
 @dataclass(slots=True)
 class StaticApprovalHandler:
-    """Deterministic approval handler for local demos, evals, and alpha usage.
+    """Deterministic approval handler for local demos, evals, and simple integrations.
 
     Matching order:
 
@@ -181,6 +182,73 @@ def timeout_all(
     return StaticApprovalHandler(
         default=ApprovalResponse.timeout(reason=reason, metadata=metadata),
     )
+
+
+@dataclass(slots=True)
+class TerminalApprovalHandler:
+    """Interactive approval handler that prompts in the terminal.
+
+    When a review decision is triggered, this handler prints the event details
+    and asks the user to approve or deny the action in the terminal.
+
+    This is the recommended handler for local development — it lets you see
+    exactly what the agent is trying to do and decide in real-time.
+    """
+
+    default_deny: bool = True
+    prompt_text: str = "  Allow? [y/N]: "
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __call__(self, request: ApprovalRequest) -> ApprovalResponse:
+        import sys
+
+        kind = request.event.kind.value
+        rule = request.decision.rule or "unknown"
+        reason = request.decision.reason or ""
+
+        detail = ""
+        if kind == "tool_call":
+            tool = request.event.payload.get("name", "")
+            detail = f"  Tool:   {tool}" if tool else ""
+        elif kind == "file_access":
+            path = request.event.payload.get("path", "")
+            detail = f"  Path:   {path}" if path else ""
+        elif kind == "http_request":
+            host = request.event.payload.get("hostname", "")
+            url = request.event.payload.get("url", "")
+            detail = f"  Host:   {host}" if host else ""
+            if url:
+                detail += f"\n  URL:    {url}"
+        elif kind == "command":
+            cmd = request.event.payload.get("command_text", "")
+            detail = f"  Cmd:    {cmd}" if cmd else ""
+
+        print(f"--- AgentFirewall Review ---", file=sys.stderr)
+        print(f"  Event:  {kind}", file=sys.stderr)
+        if detail:
+            print(detail, file=sys.stderr)
+        print(f"  Rule:   {rule}", file=sys.stderr)
+        if reason:
+            print(f"  Reason: {reason}", file=sys.stderr)
+
+        try:
+            answer = input(self.prompt_text).strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            answer = ""
+
+        metadata = dict(self.metadata)
+        metadata["approval_source"] = "terminal"
+
+        if answer in ("y", "yes"):
+            return ApprovalResponse.approve(
+                reason="Approved by user in terminal.",
+                metadata=metadata,
+            )
+
+        return ApprovalResponse.deny(
+            reason="Denied by user in terminal.",
+            metadata=metadata,
+        )
 
 
 def normalize_approval_response(

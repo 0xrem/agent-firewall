@@ -20,7 +20,7 @@ from ..firewall import AgentFirewall, create_firewall
 from ..policy_packs import (
     PolicyPackConfig,
 )
-from ..runtime_context import runtime_event_context
+from ..runtime_context import attach_runtime_context, runtime_event_context
 
 try:
     from langchain.agents.middleware import AgentMiddleware
@@ -459,3 +459,56 @@ def create_guarded_langgraph_file_reader_tool(
         )
 
     return guarded_file_reader
+
+
+def create_guarded_langgraph_file_writer_tool(
+    *,
+    firewall: AgentFirewall,
+    name: str = "write_file",
+    description: str = (
+        "Write content to a local file through AgentFirewall-guarded filesystem enforcement."
+    ),
+    source: str = "langgraph.file",
+    writer: Callable[..., Any] | None = None,
+    encoding: str = "utf-8",
+    write_kwargs: Mapping[str, Any] | None = None,
+) -> Any:
+    """Create a LangGraph tool that guards local file writes.
+
+    When `writer` is provided, it is called as `writer(path, content, **write_kwargs)`.
+    Otherwise the tool writes through the default guarded file opener.
+    """
+
+    decorator = _langgraph_tool_decorator(name=name, description=description)
+    file_source = f"{source}.file"
+    file_access = GuardedFileAccess(
+        firewall=firewall,
+        source=file_source,
+    )
+
+    @decorator
+    def guarded_file_writer(path: str, content: str) -> str:
+        """Write content to a local file through AgentFirewall-guarded filesystem enforcement."""
+
+        if writer is None:
+            open_kwargs = dict(write_kwargs or {})
+            if "encoding" not in open_kwargs:
+                open_kwargs["encoding"] = encoding
+            handle = file_access.open(path, "w", **open_kwargs)
+            if hasattr(handle, "write"):
+                handle.write(content)
+                if hasattr(handle, "close"):
+                    handle.close()
+        else:
+            event = attach_runtime_context(
+                EventContext.file_access(
+                    path,
+                    mode="write",
+                    source=file_source,
+                )
+            )
+            firewall.enforce(event)
+            writer(path, content, **dict(write_kwargs or {}))
+        return f"wrote {len(content)} chars to {path}"
+
+    return guarded_file_writer

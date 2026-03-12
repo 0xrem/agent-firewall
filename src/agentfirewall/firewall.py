@@ -28,8 +28,8 @@ T = TypeVar("T")
 class AgentFirewall:
     """Core firewall object.
 
-    This is an intentionally small skeleton. It keeps the initial package
-    structure stable while the real enforcement model is implemented.
+    Evaluates runtime events through a policy engine, records audit entries,
+    and enforces block/review/allow decisions on the agent execution path.
     """
 
     config: FirewallConfig = field(default_factory=FirewallConfig)

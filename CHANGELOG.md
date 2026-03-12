@@ -1,6 +1,36 @@
 # Changelog
 
-## 0.1.0a1 - Pending Release
+## 1.0.0 - 2026-03-12
+
+Stable release. The LangGraph runtime path is the officially supported 1.0.0 adapter.
+
+### New capabilities
+
+- **Expanded prompt injection detection** from 3 to 37 patterns — covers instruction override, system prompt extraction, jailbreak, DAN, mode switching, and common jailbreak phrasing.
+- **Expanded dangerous command blocking** from 6 to 28 patterns — covers `curl|bash`, `chmod 777`, fork bomb, `shutdown`, `shred`, disk destruction, and more.
+- **Expanded sensitive file protection** from 4 to 27 path tokens — covers `.ssh/*`, `.npmrc`, `.pypirc`, `.netrc`, `.git-credentials`, `.docker/config.json`, `.kube/config`, `/etc/shadow`, `credentials.json`, `secrets.yaml`, and more.
+- **Added `ConsoleAuditSink`** — prints every firewall decision to stderr as it happens, so developers can see the firewall working in real-time during development.
+- **Added `MultiAuditSink`** — fan out audit entries to multiple sinks simultaneously (e.g. console + in-memory + file).
+- **Added `TerminalApprovalHandler`** — interactive terminal prompt that asks the user to approve or deny review-required actions. Prints event details and accepts y/n input. Default deny for safety.
+- **Added `create_file_writer_tool`** — guarded file write tool for LangGraph agents, complementing the existing file reader tool. Both reads and writes to sensitive paths are now blocked.
+- **Added `api.anthropic.com`** to default trusted hosts alongside `api.openai.com`.
+- **Fixed `trusted_hosts=()` semantics** so an empty trust list blocks all outbound hosts instead of allowing every destination.
+- **Fixed `create_file_writer_tool(writer=...)`** so custom writer callbacks receive `(path, content, **kwargs)` after firewall enforcement.
+
+### Documentation and quality
+
+- Rewrote README (English and Chinese) with quickstart showing `ConsoleAuditSink`, `TerminalApprovalHandler`, and all guarded tools including file writer.
+- Added "See It In Action" section with before/after comparison and live console output example.
+- Added regression tests covering expanded rules, `ConsoleAuditSink`, `MultiAuditSink`, `TerminalApprovalHandler`, trust-list semantics, and custom file writer behavior. Test count: 56 → 77.
+- Removed all alpha/preview language from source code, docstrings, and documentation.
+- Added `examples/attack_scenarios.py` with six concrete scenarios (including file write blocking) with audit trails.
+- Updated all examples to use `ConsoleAuditSink` for real-time visibility and `create_file_writer_tool` for file write protection.
+- Expanded trial runner from 9 to 10 scenarios (added credential injection via file write).
+- Updated the attack-scenario demo to reuse the active Python interpreter and added it to source distributions.
+- Updated CI to use pytest across Python 3.10–3.13 with attack scenario demo and eval suite as CI steps.
+- Updated package classifier from Alpha to Production/Stable.
+
+## 0.1.0a1 - 2026-03-12
 
 - Narrowed the alpha-facing root API to core firewall construction and moved the supported runtime path behind `agentfirewall.langgraph`.
 - Added `agentfirewall.approval.StaticApprovalHandler` plus shorthand helpers as the documented alpha approval path for demos, evals, and simple integrations.

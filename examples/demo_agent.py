@@ -1,8 +1,8 @@
-"""Minimal demo for the first AgentFirewall preview."""
+"""Minimal demo using the low-level AgentFirewall API directly."""
 
 from __future__ import annotations
 
-from agentfirewall import AgentFirewall, FirewallConfig, InMemoryAuditSink
+from agentfirewall import AgentFirewall, ConsoleAuditSink, FirewallConfig, InMemoryAuditSink, MultiAuditSink
 from agentfirewall.enforcers import GuardedToolDispatcher
 from agentfirewall.enforcers import (
     GuardedFileAccess,
@@ -111,7 +111,7 @@ class DemoAgent:
 
 
 def main() -> None:
-    audit_sink = InMemoryAuditSink()
+    audit_sink = MultiAuditSink(sinks=[InMemoryAuditSink(), ConsoleAuditSink()])
     firewall = AgentFirewall(
         config=FirewallConfig(name="demo", log_only=False),
         policy=build_builtin_policy_engine(

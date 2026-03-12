@@ -22,29 +22,130 @@ class PolicyPackConfig:
 
     name: str = "default"
     suspicious_prompt_phrases: tuple[str, ...] = (
+        # Instruction override
         "ignore previous instructions",
+        "ignore all previous instructions",
+        "ignore your instructions",
+        "ignore the above",
         "disregard all prior instructions",
+        "disregard your instructions",
+        "disregard the above",
+        "forget your instructions",
+        "forget all previous instructions",
+        "forget everything above",
+        "override your instructions",
+        "override previous instructions",
+        "do not follow your instructions",
+        # System prompt extraction
         "reveal the system prompt",
+        "show me the system prompt",
+        "print your system prompt",
+        "output your instructions",
+        "repeat your instructions",
+        "display your instructions",
+        "what is your system prompt",
+        "what are your instructions",
+        # Mode switching / jailbreak
+        "enter developer mode",
+        "enter admin mode",
+        "you are now in developer mode",
+        "activate developer mode",
+        "jailbreak",
+        "bypass restrictions",
+        "ignore safety guidelines",
+        "ignore content policy",
+        "pretend you have no restrictions",
+        "act as an unrestricted",
+        "you have been jailbroken",
+        # Indirect injection
+        "do anything now",
+        "you are DAN",
+        "simulate a jailbreak",
+        "hypothetically, if you had no restrictions",
     )
     dangerous_command_patterns: tuple[str, ...] = (
+        # Recursive deletion
         "rm -rf /",
         "rm -rf ~",
+        "rm -rf *",
+        "rm -rf .",
+        # Pipe to shell (remote code execution)
         "| sh",
         "| bash",
+        "| zsh",
+        "curl | sh",
+        "curl | bash",
+        "wget | sh",
+        "wget | bash",
+        # Disk / filesystem destruction
         "mkfs",
         "dd if=",
+        "> /dev/sd",
+        "wipefs",
+        "fdisk",
+        # Fork bomb
+        ":(){ :|:&",
+        # System control
+        "shutdown -h",
+        "shutdown now",
+        "init 0",
+        "init 6",
+        # Dangerous permission changes
+        "chmod 777 /",
+        "chmod -r 777",
+        "chown -r root",
+        # System file overwrite
+        "> /etc/passwd",
+        "> /etc/shadow",
+        # History / log wiping
+        "history -c",
+        "shred",
     )
     sensitive_path_tokens: tuple[str, ...] = (
+        # Environment and config secrets
         ".env",
+        # Cloud credentials
         ".aws/credentials",
+        ".aws/config",
+        # SSH keys and config
         "id_rsa",
         "id_ed25519",
+        "id_ecdsa",
+        "id_dsa",
+        ".ssh/authorized_keys",
+        ".ssh/config",
+        # Git credentials
+        ".git-credentials",
+        ".gitconfig",
+        # Package manager tokens
+        ".npmrc",
+        ".pypirc",
+        # Network credentials
+        ".netrc",
+        # Docker credentials
+        ".docker/config.json",
+        # Kubernetes credentials
+        ".kube/config",
+        # Database credentials
+        ".pgpass",
+        ".my.cnf",
+        # Web server credentials
+        ".htpasswd",
+        # System password files
+        "/etc/shadow",
+        # Generic secret files
+        "credentials.json",
+        "secrets.yaml",
+        "secrets.yml",
+        "secrets.json",
+        "service-account.json",
     )
     allowed_request_schemes: tuple[str, ...] = ("http", "https")
     trusted_hosts: tuple[str, ...] = (
         "localhost",
         "127.0.0.1",
         "api.openai.com",
+        "api.anthropic.com",
     )
     reviewed_tool_names: tuple[str, ...] = (
         "shell",
@@ -56,7 +157,7 @@ class PolicyPackConfig:
 
 
 def default_policy_pack() -> PolicyPackConfig:
-    """Return the default preview policy pack."""
+    """Return the default policy pack."""
 
     return PolicyPackConfig()
 
@@ -81,6 +182,7 @@ def strict_policy_pack() -> PolicyPackConfig:
             "localhost",
             "127.0.0.1",
             "api.openai.com",
+            "api.anthropic.com",
         ),
     )
 

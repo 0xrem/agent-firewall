@@ -13,6 +13,7 @@ from agentfirewall.exceptions import FirewallViolation
 from agentfirewall.langgraph import (
     create_agent as create_firewalled_langgraph_agent,
     create_file_reader_tool as create_guarded_langgraph_file_reader_tool,
+    create_file_writer_tool as create_guarded_langgraph_file_writer_tool,
     create_http_tool as create_guarded_langgraph_http_tool,
     create_shell_tool as create_guarded_langgraph_shell_tool,
 )
@@ -617,6 +618,120 @@ class LangGraphIntegrationTests(unittest.TestCase):
         runtime_context = audit_sink.entries[-1].event.payload["runtime_context"]
         self.assertEqual(runtime_context["tool_name"], "read_file")
         self.assertEqual(runtime_context["tool_call_id"], "call_file_safe")
+
+    def test_guarded_langgraph_file_writer_tool_passes_content_to_custom_writer(self) -> None:
+        calls: list[tuple[str, str, dict[str, object]]] = []
+        audit_sink = InMemoryAuditSink()
+
+        def fake_writer(path, content, **kwargs):
+            calls.append((path, content, dict(kwargs)))
+
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+        )
+        write_file_tool = create_guarded_langgraph_file_writer_tool(
+            firewall=firewall,
+            writer=fake_writer,
+        )
+        model = ToolCallingFakeModel(
+            messages=iter(
+                [
+                    AIMessage(
+                        content="",
+                        tool_calls=[
+                            {
+                                "id": "call_write_safe",
+                                "name": "write_file",
+                                "args": {"path": "notes.txt", "content": "hello"},
+                                "type": "tool_call",
+                            }
+                        ],
+                    ),
+                    AIMessage(content="done"),
+                ]
+            )
+        )
+
+        agent = create_firewalled_langgraph_agent(
+            model=model,
+            tools=[write_file_tool],
+            firewall=firewall,
+        )
+        result = agent.invoke(
+            {"messages": [{"role": "user", "content": "Write a local note."}]}
+        )
+
+        self.assertEqual(result["messages"][-1].content, "done")
+        self.assertEqual(calls, [("notes.txt", "hello", {})])
+        self.assertEqual(
+            [entry.event.kind.value for entry in audit_sink.entries],
+            ["prompt", "tool_call", "file_access"],
+        )
+        self.assertEqual(
+            [entry.decision.action.value for entry in audit_sink.entries],
+            ["allow", "allow", "allow"],
+        )
+        runtime_context = audit_sink.entries[-1].event.payload["runtime_context"]
+        self.assertEqual(runtime_context["tool_name"], "write_file")
+        self.assertEqual(runtime_context["tool_call_id"], "call_write_safe")
+
+    def test_guarded_langgraph_file_writer_tool_blocks_sensitive_path_before_writer(self) -> None:
+        calls: list[tuple[str, str, dict[str, object]]] = []
+        audit_sink = InMemoryAuditSink()
+
+        def fake_writer(path, content, **kwargs):
+            calls.append((path, content, dict(kwargs)))
+
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+        )
+        write_file_tool = create_guarded_langgraph_file_writer_tool(
+            firewall=firewall,
+            writer=fake_writer,
+        )
+        model = ToolCallingFakeModel(
+            messages=iter(
+                [
+                    AIMessage(
+                        content="",
+                        tool_calls=[
+                            {
+                                "id": "call_write_blocked",
+                                "name": "write_file",
+                                "args": {"path": ".env", "content": "SECRET=1"},
+                                "type": "tool_call",
+                            }
+                        ],
+                    )
+                ]
+            )
+        )
+
+        agent = create_firewalled_langgraph_agent(
+            model=model,
+            tools=[write_file_tool],
+            firewall=firewall,
+        )
+
+        with self.assertRaisesRegex(
+            FirewallViolation,
+            "File path matches a sensitive-path rule.",
+        ):
+            agent.invoke(
+                {"messages": [{"role": "user", "content": "Write secrets to .env."}]}
+            )
+
+        self.assertEqual(calls, [])
+        self.assertEqual(
+            [entry.event.kind.value for entry in audit_sink.entries],
+            ["prompt", "tool_call", "file_access"],
+        )
+        self.assertEqual(audit_sink.entries[-1].decision.action.value, "block")
+        runtime_context = audit_sink.entries[-1].event.payload["runtime_context"]
+        self.assertEqual(runtime_context["tool_name"], "write_file")
+        self.assertEqual(runtime_context["tool_call_id"], "call_write_blocked")
 
     def test_langgraph_multi_step_flow_allows_approved_shell_then_trusted_http(self) -> None:
         shell_calls: list[tuple[object, bool, str | None]] = []

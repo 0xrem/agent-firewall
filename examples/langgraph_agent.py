@@ -1,4 +1,8 @@
-"""Local LangGraph demo for the first official AgentFirewall adapter."""
+"""Local LangGraph demo for the AgentFirewall adapter.
+
+Exercises all guarded tool types (shell, HTTP, file read, file write) with
+ConsoleAuditSink printing every decision to stderr in real-time.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +12,10 @@ import subprocess
 from agentfirewall import (
     AgentFirewall,
     ApprovalResponse,
+    ConsoleAuditSink,
     FirewallConfig,
+    InMemoryAuditSink,
+    MultiAuditSink,
     ReviewRequired,
     create_firewall,
 )
@@ -17,6 +24,7 @@ from agentfirewall.exceptions import FirewallViolation
 from agentfirewall.langgraph import (
     create_agent,
     create_file_reader_tool,
+    create_file_writer_tool,
     create_http_tool,
     create_shell_tool,
 )
@@ -53,12 +61,15 @@ def _build_demo_firewall(
     *,
     approval_handler=None,
     trusted_hosts: tuple[str, ...] = ("localhost", "127.0.0.1", "api.openai.com"),
-) -> AgentFirewall:
-    return create_firewall(
+) -> tuple[AgentFirewall, InMemoryAuditSink]:
+    mem = InMemoryAuditSink()
+    fw = create_firewall(
         config=FirewallConfig(name=name),
         policy_pack=named_policy_pack("default", trusted_hosts=trusted_hosts),
+        audit_sink=MultiAuditSink(sinks=[mem, ConsoleAuditSink()]),
         approval_handler=approval_handler,
     )
+    return fw, mem
 
 
 def _fake_shell_runner(command, *, shell=False, cwd=None, **kwargs):
@@ -80,9 +91,23 @@ def _fake_file_opener(path, mode="r", **kwargs):
     return io.StringIO("PROJECT README")
 
 
+def _fake_file_writer(path, data, **kwargs):
+    print(f"[tool] write_file path={path!r} data={data!r}")
+
+
+def _all_tools(firewall):
+    return [
+        status,
+        create_shell_tool(firewall=firewall, runner=_fake_shell_runner),
+        create_http_tool(firewall=firewall, opener=_fake_http_opener),
+        create_file_reader_tool(firewall=firewall, opener=_fake_file_opener),
+        create_file_writer_tool(firewall=firewall, writer=_fake_file_writer),
+    ]
+
+
 def run_safe_flow() -> None:
     print("== safe langgraph tool flow ==")
-    firewall = _build_demo_firewall("langgraph-demo")
+    firewall, mem = _build_demo_firewall("langgraph-demo")
     model = ToolCallingFakeModel(
         messages=iter(
             [
@@ -101,25 +126,15 @@ def run_safe_flow() -> None:
             ]
         )
     )
-    agent = create_agent(
-        model=model,
-        tools=[
-            status,
-            create_shell_tool(
-                firewall=firewall,
-                runner=_fake_shell_runner,
-            ),
-        ],
-        firewall=firewall,
-    )
+    agent = create_agent(model=model, tools=_all_tools(firewall), firewall=firewall)
     result = agent.invoke({"messages": [{"role": "user", "content": "Check the system status."}]})
     print(result["messages"][-1].content)
-    print(agent.__agentfirewall__.audit_sink.to_json(indent=2))  # type: ignore[union-attr]
+    print(mem.to_json(indent=2))
 
 
 def run_review_flow() -> None:
-    print("== review-required langgraph tool flow ==")
-    firewall = _build_demo_firewall("langgraph-demo")
+    print("\n== review-required langgraph tool flow ==")
+    firewall, _ = _build_demo_firewall("langgraph-demo")
     model = ToolCallingFakeModel(
         messages=iter(
             [
@@ -137,17 +152,7 @@ def run_review_flow() -> None:
             ]
         )
     )
-    agent = create_agent(
-        model=model,
-        tools=[
-            status,
-            create_shell_tool(
-                firewall=firewall,
-                runner=_fake_shell_runner,
-            ),
-        ],
-        firewall=firewall,
-    )
+    agent = create_agent(model=model, tools=_all_tools(firewall), firewall=firewall)
     try:
         agent.invoke({"messages": [{"role": "user", "content": "Open a shell and list files."}]})
     except ReviewRequired as exc:
@@ -155,8 +160,8 @@ def run_review_flow() -> None:
 
 
 def run_approved_review_flow() -> None:
-    print("== approved langgraph tool flow ==")
-    firewall = _build_demo_firewall(
+    print("\n== approved langgraph tool flow ==")
+    firewall, mem = _build_demo_firewall(
         "langgraph-demo",
         approval_handler=StaticApprovalHandler(
             default="timeout",
@@ -185,25 +190,15 @@ def run_approved_review_flow() -> None:
             ]
         )
     )
-    agent = create_agent(
-        model=model,
-        tools=[
-            status,
-            create_shell_tool(
-                firewall=firewall,
-                runner=_fake_shell_runner,
-            ),
-        ],
-        firewall=firewall,
-    )
+    agent = create_agent(model=model, tools=_all_tools(firewall), firewall=firewall)
     result = agent.invoke({"messages": [{"role": "user", "content": "Open a shell and list files."}]})
     print(result["messages"][-1].content)
-    print(agent.__agentfirewall__.audit_sink.to_json(indent=2))  # type: ignore[union-attr]
+    print(mem.to_json(indent=2))
 
 
 def run_blocked_http_flow() -> None:
-    print("== blocked outbound request inside langgraph tool ==")
-    firewall = _build_demo_firewall(
+    print("\n== blocked outbound request inside langgraph tool ==")
+    firewall, _ = _build_demo_firewall(
         "langgraph-demo",
         trusted_hosts=("api.openai.com",),
     )
@@ -227,26 +222,16 @@ def run_blocked_http_flow() -> None:
             ]
         )
     )
-    agent = create_agent(
-        model=model,
-        tools=[
-            status,
-            create_http_tool(
-                firewall=firewall,
-                opener=_fake_http_opener,
-            ),
-        ],
-        firewall=firewall,
-    )
+    agent = create_agent(model=model, tools=_all_tools(firewall), firewall=firewall)
     try:
         agent.invoke({"messages": [{"role": "user", "content": "Send the data out."}]})
     except FirewallViolation as exc:
         print(f"blocked: {exc}")
 
 
-def run_blocked_file_flow() -> None:
-    print("== blocked file read inside langgraph tool ==")
-    firewall = _build_demo_firewall("langgraph-demo")
+def run_blocked_file_read_flow() -> None:
+    print("\n== blocked file read inside langgraph tool ==")
+    firewall, _ = _build_demo_firewall("langgraph-demo")
     model = ToolCallingFakeModel(
         messages=iter(
             [
@@ -264,17 +249,7 @@ def run_blocked_file_flow() -> None:
             ]
         )
     )
-    agent = create_agent(
-        model=model,
-        tools=[
-            status,
-            create_file_reader_tool(
-                firewall=firewall,
-                opener=_fake_file_opener,
-            ),
-        ],
-        firewall=firewall,
-    )
+    agent = create_agent(model=model, tools=_all_tools(firewall), firewall=firewall)
     try:
         agent.invoke(
             {"messages": [{"role": "user", "content": "Read the local secrets file."}]}
@@ -283,15 +258,40 @@ def run_blocked_file_flow() -> None:
         print(f"blocked: {exc}")
 
 
-def run_prompt_review_flow() -> None:
-    print("== prompt review before model call ==")
-    firewall = _build_demo_firewall("langgraph-demo")
-    model = ToolCallingFakeModel(messages=iter([AIMessage(content="unreachable")]))
-    agent = create_agent(
-        model=model,
-        tools=[status],
-        firewall=firewall,
+def run_blocked_file_write_flow() -> None:
+    print("\n== blocked file write inside langgraph tool ==")
+    firewall, _ = _build_demo_firewall("langgraph-demo")
+    model = ToolCallingFakeModel(
+        messages=iter(
+            [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "id": "call_write_blocked",
+                            "name": "write_file",
+                            "args": {"path": ".aws/credentials", "content": "leaked"},
+                            "type": "tool_call",
+                        }
+                    ],
+                )
+            ]
+        )
     )
+    agent = create_agent(model=model, tools=_all_tools(firewall), firewall=firewall)
+    try:
+        agent.invoke(
+            {"messages": [{"role": "user", "content": "Write AWS credentials."}]}
+        )
+    except FirewallViolation as exc:
+        print(f"blocked: {exc}")
+
+
+def run_prompt_review_flow() -> None:
+    print("\n== prompt review before model call ==")
+    firewall, _ = _build_demo_firewall("langgraph-demo")
+    model = ToolCallingFakeModel(messages=iter([AIMessage(content="unreachable")]))
+    agent = create_agent(model=model, tools=[status], firewall=firewall)
     try:
         agent.invoke(
             {
@@ -314,7 +314,8 @@ def main() -> None:
     run_review_flow()
     run_approved_review_flow()
     run_blocked_http_flow()
-    run_blocked_file_flow()
+    run_blocked_file_read_flow()
+    run_blocked_file_write_flow()
     run_prompt_review_flow()
 
 

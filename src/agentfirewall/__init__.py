@@ -1,4 +1,4 @@
-"""Alpha-facing public package interface for AgentFirewall."""
+"""Public package interface for AgentFirewall."""
 
 from __future__ import annotations
 
@@ -7,22 +7,24 @@ import warnings
 from typing import Any
 
 from .approval import ApprovalResponse
-from .audit import InMemoryAuditSink
+from .audit import ConsoleAuditSink, InMemoryAuditSink, MultiAuditSink
 from .config import FirewallConfig
 from .exceptions import FirewallViolation, ReviewRequired
 from .firewall import AgentFirewall, create_firewall
 
-ALPHA_PUBLIC_API = (
+PUBLIC_API = (
     "AgentFirewall",
     "ApprovalResponse",
+    "ConsoleAuditSink",
     "FirewallConfig",
     "FirewallViolation",
     "InMemoryAuditSink",
+    "MultiAuditSink",
     "ReviewRequired",
     "create_firewall",
 )
 
-__all__ = list(ALPHA_PUBLIC_API)
+__all__ = list(PUBLIC_API)
 
 _LEGACY_EXPORTS: dict[str, tuple[str, str, str]] = {
     "AgentFirewallError": (".exceptions", "AgentFirewallError", "agentfirewall.exceptions.AgentFirewallError"),
@@ -105,7 +107,7 @@ def __getattr__(name: str) -> Any:
     warnings.warn(
         (
             f"`agentfirewall.{name}` is a legacy root import. "
-            f"Import `{guidance}` instead. The alpha-stable root API is intentionally narrow."
+            f"Import `{guidance}` instead. The root API is intentionally narrow."
         ),
         DeprecationWarning,
         stacklevel=2,

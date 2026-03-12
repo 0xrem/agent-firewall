@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from .events import EventContext
 from .policy import Decision
@@ -113,6 +113,67 @@ class InMemoryAuditSink:
 
     def to_json(self, *, indent: int = 2) -> str:
         return json.dumps(self.export(), indent=indent, sort_keys=True)
+
+
+@dataclass(slots=True)
+class ConsoleAuditSink:
+    """Print each firewall decision to stderr as it happens.
+
+    This is the primary way developers see the firewall working in real-time.
+    Use it during development alongside InMemoryAuditSink for programmatic access.
+    """
+
+    prefix: str = "[firewall]"
+    verbose: bool = False
+
+    def record(self, entry: AuditEntry) -> None:
+        import sys
+
+        action = entry.decision.action.value.upper()
+        kind = entry.event.kind.value
+        rule = entry.decision.rule or "default"
+        meta = entry.decision.metadata
+
+        # Build detail string based on event kind
+        detail = ""
+        if kind == "tool_call":
+            tool = entry.event.payload.get("name", "")
+            detail = f"tool={tool}" if tool else ""
+        elif kind == "file_access":
+            path = entry.event.payload.get("path", "")
+            detail = f"path={path}" if path else ""
+        elif kind == "http_request":
+            host = entry.event.payload.get("hostname", "")
+            detail = f"host={host}" if host else ""
+        elif kind == "command":
+            cmd = entry.event.payload.get("command_text", "")
+            if len(cmd) > 40:
+                cmd = cmd[:37] + "..."
+            detail = f"cmd={cmd}" if cmd else ""
+
+        reason = ""
+        if action in ("BLOCK", "REVIEW") or self.verbose:
+            reason = f" -- {entry.decision.reason}" if entry.decision.reason else ""
+
+        parts = [self.prefix, f"{action:<6}", kind]
+        if detail:
+            parts.append(detail)
+        if rule != "default" or action != "ALLOW":
+            parts.append(f"({rule})")
+        line = "  ".join(parts) + reason
+
+        print(line, file=sys.stderr)
+
+
+@dataclass(slots=True)
+class MultiAuditSink:
+    """Fan out audit entries to multiple sinks."""
+
+    sinks: list[Any] = field(default_factory=list)
+
+    def record(self, entry: AuditEntry) -> None:
+        for sink in self.sinks:
+            sink.record(entry)
 
 
 @dataclass(slots=True)
