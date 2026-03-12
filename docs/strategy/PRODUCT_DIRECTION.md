@@ -339,6 +339,217 @@ Do not move to the next release focus until the following are true:
 
 Once those conditions are met, `0.0.4` can focus on the first real runtime adapter.
 
+## Pre-1.0 Release Path
+
+The project should not stay in `0.0.x` indefinitely.
+
+From the current state, the recommended path is:
+
+1. `0.0.4` for the first official runtime adapter.
+2. `0.0.5` for evals and approval-flow hardening.
+3. `0.0.6` for public API freeze preview.
+4. `0.1.0a1` for the first public alpha.
+5. `0.1.0b1` for beta hardening.
+6. `1.0.0` only when one supported runtime feels reliably usable end to end.
+
+Do not continue extending `0.0.x` past `0.0.6` unless there is a concrete blocker to shipping `0.1.0a1`.
+
+## Release Discipline
+
+Every release before `1.0.0` should satisfy all of the following:
+
+1. Add one externally visible capability, not just internal refactoring.
+2. Include regression coverage for the new capability.
+3. Update `README.md`, this strategy document, and `CHANGELOG.md`.
+4. Publish a GitHub Release with a short summary, demo value, and known limitations.
+5. Keep the release focused on one main theme instead of mixing multiple maturity jumps.
+
+This is important because the product has to build trust through visible, testable progress.
+
+## 0.0.4 Milestone
+
+The recommended next milestone is `0.0.4` as the first official adapter release.
+
+The purpose of `0.0.4` is to stop proving only low-level primitives and start proving that AgentFirewall can plug into a real agent runtime with low integration overhead.
+
+### Runtime Choice Rule
+
+Choose exactly one primary runtime target for `0.0.4`.
+
+The `0.0.4` runtime target is locked to `LangGraph`.
+
+Reason:
+
+- it gives the clearest open-source runtime boundary for the first official adapter
+- it keeps the product story aligned with a graph-oriented runtime rather than only a vendor-specific surface
+- it still leaves room to support OpenAI Agents later without changing the core runtime model
+
+Do not add an OpenAI Agents adapter to `0.0.4`.
+
+### Definition Of Done For 0.0.4
+
+1. One official adapter exists for exactly one supported Python runtime.
+2. The adapter integration path is close to one import plus one explicit wrap step.
+3. The adapter routes tool execution and at least one additional execution surface through the normalized event model.
+4. The repository includes a runnable example that uses the real adapter, not only low-level wrappers.
+5. The release includes at least one local trial run showing meaningful blocked or reviewed behavior on a realistic workflow.
+
+### 0.0.4 Work Packages
+
+#### 1. Runtime Selection And Scope Lock
+
+Minimum goal:
+
+- choose the runtime explicitly
+- document what parts of that runtime are in scope for the first adapter
+- document what is intentionally deferred
+
+#### 2. Adapter Boundary Design
+
+Minimum goal:
+
+- create a dedicated adapter module instead of mixing adapter logic into low-level enforcers
+- map runtime-native tool calls into the normalized event model
+- preserve current policy, audit, and config contracts
+
+#### 3. Real Adapter Example
+
+Minimum goal:
+
+- add an example app that uses the chosen runtime
+- show both a benign flow and a blocked or reviewed flow
+- make the example usable as a product demo, not only a developer smoke test
+
+#### 4. Adapter Integration Tests
+
+Minimum goal:
+
+- test that the adapter emits the expected events
+- test that dangerous runtime actions are blocked or reviewed before side effects
+- test `log-only` behavior with the adapter in place
+
+#### 5. Local Trial Run Notes
+
+Minimum goal:
+
+- run the adapter on at least one realistic workflow
+- record false positives and missing context
+- feed those findings back into adapter and policy tuning
+
+### 0.0.4 Non-Goals
+
+- a second official adapter
+- broad framework coverage
+- centralized approval UX
+- sidecar or proxy deployment patterns
+- large policy-language work
+
+### Exit Criteria Before 0.0.5
+
+Do not move to the next release focus until the following are true:
+
+1. One runtime can be integrated without hand-wiring all low-level wrappers in user code.
+2. The adapter produces the same normalized event and decision flow as the low-level enforcement path.
+3. There is at least one example and one trial run that a prospective user would find convincing.
+
+## 0.0.5 Milestone
+
+The recommended next milestone is `0.0.5` as the evals and approval-flow release.
+
+The purpose of `0.0.5` is to make AgentFirewall demonstrably effective instead of only structurally correct.
+
+### Definition Of Done For 0.0.5
+
+1. The project contains a first-class eval suite with benign and adversarial cases.
+2. `review` can be handled through an explicit approval hook, not only by catching an exception.
+3. The repository can produce a simple results summary that shows what was allowed, blocked, reviewed, and missed.
+4. Trial-run findings are tracked as product input, not only ad hoc notes.
+
+### 0.0.5 Work Packages
+
+#### 1. Evals Directory And Runner
+
+Minimum goal:
+
+- create an `evals/` area
+- define a small, repeatable case format
+- provide a command that runs the cases and prints a useful summary
+
+#### 2. Benign Versus Adversarial Cases
+
+Minimum goal:
+
+- include clear benign cases to measure false positives
+- include realistic attack cases for the supported adapter
+- keep the cases versioned and reproducible
+
+#### 3. Approval Hook Contract
+
+Minimum goal:
+
+- define a runtime-facing approval hook interface
+- allow a user or caller to approve, deny, or time out a review-required action
+- keep the default behavior safe when no handler is present
+
+#### 4. Evaluation Reporting
+
+Minimum goal:
+
+- record pass and fail counts
+- record unexpected allows and unexpected blocks
+- make the results easy to include in release notes and demos
+
+### Exit Criteria Before 0.0.6
+
+1. The adapter can be demonstrated with repeatable eval output.
+2. `review` can be resolved through an explicit approval path.
+3. False positives and false negatives are visible enough to guide iteration.
+
+## 0.0.6 Milestone
+
+The recommended next milestone is `0.0.6` as the API freeze preview release.
+
+The purpose of `0.0.6` is to make the package feel stable enough to invite real external usage ahead of `0.1.0a1`.
+
+### Definition Of Done For 0.0.6
+
+1. The public Python API is intentionally narrowed and documented.
+2. Migration notes exist for any API churn introduced during `0.0.x`.
+3. Quick start documentation uses a real supported adapter path.
+4. The configuration model is stable enough to stop changing in every patch release.
+5. The supported adapter, evals, and approval flow all work together in the documented path.
+
+### Exit Criteria Before 0.1.0a1
+
+1. The documented quick start works without hidden setup assumptions.
+2. The core API is stable enough to carry into alpha with only additive changes.
+3. The project has enough demo and eval evidence to justify broader public feedback.
+
+## Alpha, Beta, And 1.0.0
+
+### 0.1.0a1
+
+This should be the first public alpha, intended to collect outside integration feedback.
+
+### 0.1.0b1
+
+This should be the beta hardening release, focused on adapter quality, false-positive control, docs quality, and packaging polish.
+
+### 1.0.0
+
+`1.0.0` should mean that AgentFirewall is genuinely usable for at least one officially supported Python agent runtime.
+
+It should not mean broad coverage of every framework.
+
+Definition of done for `1.0.0`:
+
+1. One official adapter is stable and well documented.
+2. Tool, command, file, and outbound-network enforcement are all demonstrably useful in that runtime.
+3. A review-required flow can be handled explicitly and predictably.
+4. The project includes repeatable evals that show both attack blocking and benign-path correctness.
+5. Real usage trials have informed at least one full hardening cycle.
+6. The quick start and release story are compelling enough that a new user can see value quickly.
+
 ## Recommended Build Order
 
 To keep the first version robust and fast to iterate on, development should happen in this order:

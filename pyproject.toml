@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentfirewall"
-version = "0.0.3"
+version = "0.0.4"
 description = "Runtime firewall for AI agents."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,6 +29,10 @@ Homepage = "https://github.com/0xrem/agent-firewall"
 package-dir = {"" = "src"}
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+langgraph = [
+  "langchain>=1,<2",
+  "langgraph>=1,<2",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

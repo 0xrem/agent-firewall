@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.4 - Unreleased
+
+- Added the first official LangGraph adapter via `create_firewalled_langgraph_agent`.
+- Added `LangGraphFirewallMiddleware` to route prompt inspection and tool calls through AgentFirewall.
+- Added a local LangGraph demo that runs without an external API key by using a fake tool-calling model.
+- Added LangGraph integration tests and a dedicated CI job for the optional runtime extra.
+
 ## 0.0.3 - 2026-03-12
 
 - Made `review` an approval-gated runtime outcome by default via `ReviewRequired`.

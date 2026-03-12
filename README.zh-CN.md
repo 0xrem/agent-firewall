@@ -33,7 +33,7 @@ AgentFirewall 是一个处于早期阶段的 Python 项目，目标是在 AI Age
 
 当前最初的实现目标，是一个面向已支持 Agent runtime 的 in-process Python SDK。
 
-`main` 分支当前正在推进这个 SDK 的 `0.0.3` 预览地基。
+`main` 分支当前正在推进这个 SDK 的 `0.0.4` 预览地基。
 
 ## AgentFirewall 是什么
 
@@ -113,7 +113,9 @@ agent = firewall.wrap_agent(agent)
 - 适合本地观察和回归测试的结构化 audit 导出能力
 - 对 tool、subprocess、文件访问和 HTTP 的 guarded execution helpers
 - 一个能保留位置参数和关键字参数的 tool dispatch 契约
+- 第一个官方 LangGraph adapter 预览
 - 一个可运行的 `examples/demo_agent.py` 示例
+- 一个本地可跑的 `examples/langgraph_agent.py` LangGraph 示例
 
 ## 威胁示例
 
@@ -157,20 +159,21 @@ AgentFirewall 首先面向 Python 生态中的 Agent 运行时，例如：
 
 这个仓库目前还没有：
 
-- 框架适配器
 - 稳定的公开 API
 - 内建的 approval workflow 或 reviewer integration
 - 面向误报控制和部署安全的生产级打磨
 - 覆盖所有 runtime surface 的完整 enforcement layer
 - 来自真实 agent workflow 的更广泛试跑数据
+- 多于一个官方 runtime adapter
 
 所以现在的 README 主要描述的是产品的目标形态，而不是最终定稿的安装说明。
 
 ## 路线图
 
 - 持续围绕核心策略引擎打磨 in-process Python SDK
-- 收紧 approval 语义、出站请求校验，以及面向 adapter 的执行契约
-- 等这些契约稳定后，再为选定的 Python Agent runtime 提供第一批框架适配器
+- 先把第一个官方 LangGraph adapter 做扎实，并跑真实本地 workflow
+- 在更大范围 public alpha 之前补上 evals 和显式 approval path
+- 在 `0.1.0a1` 之前收敛公开 API
 - 在 API 逐步稳定的同时继续发布 PyPI 预览版本
 - 在 SDK 模式稳定后，再探索 sidecar 或 proxy 形态
 

@@ -33,7 +33,7 @@ For release-by-release highlights, see [CHANGELOG.md](./CHANGELOG.md).
 
 The initial implementation target is an in-process Python SDK for supported agent runtimes.
 
-The `main` branch is now shaping the `0.0.3` preview foundation for that SDK.
+The `main` branch is now shaping the `0.0.4` preview foundation for that SDK.
 
 ## What AgentFirewall Is
 
@@ -115,7 +115,9 @@ The current preview includes:
 - structured audit export for local inspection and regression testing
 - guarded tool, subprocess, file, and HTTP execution helpers
 - a tool-dispatch contract that preserves positional and keyword arguments
+- the first official LangGraph adapter preview
 - a runnable demo in `examples/demo_agent.py`
+- a local LangGraph demo in `examples/langgraph_agent.py`
 
 ## Example Threat
 
@@ -159,20 +161,21 @@ AgentFirewall is initially aimed at Python agent runtimes such as:
 
 The repository does not yet include:
 
-- framework adapters
 - a stable public API
 - a built-in approval workflow or reviewer integration
 - production hardening for false positives and deployment safety
 - a complete enforcement layer for every runtime surface
 - broader runtime trial data from real agent workflows
+- more than one official runtime adapter
 
 That is why the README describes the intended shape of the product more than a finalized installation flow.
 
 ## Roadmap
 
 - Keep hardening the in-process Python SDK around a core policy engine
-- Tighten approval semantics, outbound request validation, and adapter-ready execution contracts
-- Ship the first framework adapters for selected Python agent runtimes after those contracts are stable
+- Ship the first official LangGraph adapter and validate it on realistic local workflows
+- Add evals and an explicit approval path before broader public alpha
+- Freeze the public API before `0.1.0a1`
 - Continue shipping PyPI preview releases while the API settles
 - Explore sidecar or proxy deployment patterns after the SDK model is solid
 

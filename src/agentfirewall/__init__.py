@@ -11,6 +11,10 @@ from .enforcers import (
 from .events import EventContext, EventKind
 from .exceptions import AgentFirewallError, FirewallViolation, ReviewRequired
 from .firewall import AgentFirewall, protect
+from .integrations import (
+    LangGraphFirewallMiddleware,
+    create_firewalled_langgraph_agent,
+)
 from .policy import Decision, DecisionAction, PolicyEngine, Rule
 from .policy_packs import (
     PolicyPackConfig,
@@ -37,11 +41,13 @@ __all__ = [
     "GuardedToolDispatcher",
     "InMemoryAuditSink",
     "JsonLinesAuditSink",
+    "LangGraphFirewallMiddleware",
     "PolicyEngine",
     "PolicyPackConfig",
     "ReviewRequired",
     "Rule",
     "build_builtin_policy_engine",
+    "create_firewalled_langgraph_agent",
     "default_policy_pack",
     "default_runtime_rules",
     "named_policy_pack",

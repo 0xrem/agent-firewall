@@ -1,0 +1,28 @@
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+  categories:
+    - title: Breaking Changes
+      labels:
+        - breaking-change
+    - title: Runtime Enforcement
+      labels:
+        - runtime
+        - enforcement
+    - title: Adapters
+      labels:
+        - adapter
+        - integration
+    - title: Policy And Detection
+      labels:
+        - policy
+        - detection
+    - title: Developer Experience
+      labels:
+        - docs
+        - packaging
+        - ci
+    - title: Other Changes
+      labels:
+        - "*"
