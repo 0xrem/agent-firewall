@@ -38,8 +38,8 @@ class AgentFirewall:
             reason="No rule matched.",
         )
 
-    def protect(self, agent: T) -> T:
-        """Attach placeholder firewall state without altering agent behavior."""
+    def wrap_agent(self, agent: T) -> T:
+        """Attach firewall state to an agent runtime."""
 
         try:
             setattr(agent, "__agentfirewall__", self)
@@ -48,6 +48,11 @@ class AgentFirewall:
 
         return agent
 
+    def protect(self, agent: T) -> T:
+        """Backward-compatible shorthand for wrap_agent()."""
+
+        return self.wrap_agent(agent)
+
 
 def protect(
     agent: T,
@@ -55,10 +60,10 @@ def protect(
     config: FirewallConfig | None = None,
     rules: Iterable[Rule] = (),
 ) -> T:
-    """Attach a firewall instance to an agent and return the original object."""
+    """Compatibility helper that creates a firewall and wraps an agent."""
 
     firewall = AgentFirewall(
         config=config or FirewallConfig(),
         rules=list(rules),
     )
-    return firewall.protect(agent)
+    return firewall.wrap_agent(agent)
