@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.0.4 - Unreleased
+## 0.0.5 - 2026-03-12
+
+- Added an explicit approval-hook contract so reviewed actions can be approved, denied, or timed out without relying only on exceptions.
+- Added a packaged LangGraph eval suite with benign and adversarial cases plus JSON-friendly result summaries.
+- Added approval-path coverage to unit and LangGraph integration tests.
+- Expanded the LangGraph demo to show both review-required and approval-resolved tool flows.
+
+## 0.0.4 - 2026-03-12
 
 - Added the first official LangGraph adapter via `create_firewalled_langgraph_agent`.
 - Added `LangGraphFirewallMiddleware` to route prompt inspection and tool calls through AgentFirewall.

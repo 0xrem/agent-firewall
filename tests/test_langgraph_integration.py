@@ -126,6 +126,57 @@ class LangGraphIntegrationTests(unittest.TestCase):
 
         self.assertEqual(calls, [])
 
+    def test_langgraph_agent_allows_reviewed_tool_with_approval_handler(self) -> None:
+        calls: list[str] = []
+
+        @tool
+        def shell(command: str) -> str:
+            """Run a shell command."""
+
+            calls.append(command)
+            return f"shell:{command}"
+
+        audit_sink = InMemoryAuditSink()
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+            approval_handler=lambda request: True,
+        )
+        model = ToolCallingFakeModel(
+            messages=iter(
+                [
+                    AIMessage(
+                        content="",
+                        tool_calls=[
+                            {
+                                "id": "call_shell_approved",
+                                "name": "shell",
+                                "args": {"command": "ls"},
+                                "type": "tool_call",
+                            }
+                        ],
+                    ),
+                    AIMessage(content="done"),
+                ]
+            )
+        )
+
+        agent = create_firewalled_langgraph_agent(
+            model=model,
+            tools=[shell],
+            firewall=firewall,
+        )
+        result = agent.invoke(
+            {"messages": [{"role": "user", "content": "Open a shell and list files."}]}
+        )
+
+        self.assertEqual(calls, ["ls"])
+        self.assertEqual(result["messages"][-1].content, "done")
+        self.assertEqual(
+            [entry.decision.action.value for entry in audit_sink.entries],
+            ["allow", "review", "allow"],
+        )
+
     def test_langgraph_agent_reviews_prompt_before_model_call(self) -> None:
         firewall = AgentFirewall(
             policy=build_builtin_policy_engine(named_policy_pack("default"))

@@ -1,5 +1,11 @@
 """Public package interface for AgentFirewall."""
 
+from .approval import (
+    ApprovalHandler,
+    ApprovalOutcome,
+    ApprovalRequest,
+    ApprovalResponse,
+)
 from .audit import AuditEntry, InMemoryAuditSink, JsonLinesAuditSink
 from .config import FirewallConfig
 from .enforcers import (
@@ -28,6 +34,10 @@ from .rules import default_runtime_rules
 __all__ = [
     "AgentFirewall",
     "AgentFirewallError",
+    "ApprovalHandler",
+    "ApprovalOutcome",
+    "ApprovalRequest",
+    "ApprovalResponse",
     "AuditEntry",
     "Decision",
     "DecisionAction",

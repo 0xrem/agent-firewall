@@ -5,6 +5,8 @@ from pathlib import Path
 
 from agentfirewall import (
     AgentFirewall,
+    ApprovalOutcome,
+    ApprovalResponse,
     DecisionAction,
     EventContext,
     FirewallConfig,
@@ -289,6 +291,95 @@ class PackageTests(unittest.TestCase):
             tools.dispatch("shell", command="ls")
 
         self.assertEqual(calls, [])
+
+    def test_tool_dispatch_uses_approval_handler_when_review_is_raised(self) -> None:
+        calls: list[object] = []
+        audit_sink = InMemoryAuditSink()
+
+        def shell_tool(**kwargs):
+            calls.append(kwargs)
+            return "ran"
+
+        firewall = AgentFirewall(
+            config=FirewallConfig(raise_on_review=False),
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+            approval_handler=lambda request: ApprovalResponse.approve(
+                reason="Approved by unit test.",
+                metadata={"reviewer": "unit-test"},
+            ),
+        )
+        tools = GuardedToolDispatcher(firewall=firewall)
+        tools.register("shell", shell_tool)
+
+        result = tools.dispatch("shell", command="ls")
+
+        self.assertEqual(result, "ran")
+        self.assertEqual(calls, [{"command": "ls"}])
+        self.assertEqual(
+            [entry.decision.action.value for entry in audit_sink.entries],
+            ["review", "allow"],
+        )
+        self.assertEqual(
+            audit_sink.entries[-1].decision.metadata["approval_outcome"],
+            "approve",
+        )
+        self.assertEqual(
+            audit_sink.entries[-1].decision.metadata["reviewer"],
+            "unit-test",
+        )
+
+    def test_tool_dispatch_blocks_when_approval_handler_denies(self) -> None:
+        calls: list[object] = []
+        audit_sink = InMemoryAuditSink()
+
+        def shell_tool(**kwargs):
+            calls.append(kwargs)
+            return "ran"
+
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+            approval_handler=lambda request: ApprovalResponse.deny(
+                reason="Denied by unit test."
+            ),
+        )
+        tools = GuardedToolDispatcher(firewall=firewall)
+        tools.register("shell", shell_tool)
+
+        with self.assertRaises(FirewallViolation) as raised:
+            tools.dispatch("shell", command="ls")
+
+        self.assertEqual(str(raised.exception), "Denied by unit test.")
+        self.assertEqual(calls, [])
+        self.assertEqual(
+            [entry.decision.action.value for entry in audit_sink.entries],
+            ["review", "block"],
+        )
+        self.assertEqual(
+            audit_sink.entries[-1].decision.metadata["approval_outcome"],
+            "deny",
+        )
+
+    def test_review_timeout_blocks_execution(self) -> None:
+        audit_sink = InMemoryAuditSink()
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+            approval_handler=lambda request: ApprovalOutcome.TIMEOUT,
+        )
+
+        with self.assertRaises(FirewallViolation):
+            firewall.enforce(EventContext.tool_call("shell", kwargs={"command": "ls"}))
+
+        self.assertEqual(
+            [entry.decision.action.value for entry in audit_sink.entries],
+            ["review", "block"],
+        )
+        self.assertEqual(
+            audit_sink.entries[-1].decision.metadata["approval_outcome"],
+            "timeout",
+        )
 
     def test_tool_dispatch_blocks_before_execution(self) -> None:
         calls: list[object] = []

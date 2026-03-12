@@ -33,7 +33,7 @@ AgentFirewall 是一个处于早期阶段的 Python 项目，目标是在 AI Age
 
 当前最初的实现目标，是一个面向已支持 Agent runtime 的 in-process Python SDK。
 
-`main` 分支当前正在推进这个 SDK 的 `0.0.4` 预览地基。
+`main` 分支当前正在推进这个 SDK 的 `0.0.5` 预览，重点是 evals 和 approval flow 的加固。
 
 ## AgentFirewall 是什么
 
@@ -107,7 +107,7 @@ agent = firewall.wrap_agent(agent)
 
 - 一个覆盖 prompt、tool、command、file、HTTP 的统一事件模型
 - 一个支持 `allow`、`block`、`review`、`log` 的策略决策引擎
-- 在 enforced runtime surface 上默认启用审批门控的 `review` 语义
+- 在 enforced runtime surface 上为 `review` 提供显式 approval hook
 - 面向 `default` 和 `strict` 模式的配置驱动内建 policy packs
 - 对不受支持 scheme 和缺失 hostname 的出站请求做更严格校验
 - 适合本地观察和回归测试的结构化 audit 导出能力
@@ -115,7 +115,21 @@ agent = firewall.wrap_agent(agent)
 - 一个能保留位置参数和关键字参数的 tool dispatch 契约
 - 第一个官方 LangGraph adapter 预览
 - 一个可运行的 `examples/demo_agent.py` 示例
-- 一个本地可跑的 `examples/langgraph_agent.py` LangGraph 示例
+- 一个包含 review 和 approval path 的本地 `examples/langgraph_agent.py` LangGraph 示例
+- 一个可直接运行的 LangGraph eval runner：`python -m agentfirewall.evals.langgraph`
+
+## 本地验证
+
+安装可选的 LangGraph 依赖后，可以直接运行这些本地验证命令：
+
+```bash
+python -m pip install -e '.[langgraph]'
+PYTHONPATH=src python examples/demo_agent.py
+PYTHONPATH=src python examples/langgraph_agent.py
+PYTHONPATH=src python -m agentfirewall.evals.langgraph
+```
+
+eval runner 会输出一份 JSON 摘要，里面包含 pass/fail 总数，以及实际观察到的 `allow`、`block`、`review` 分布。
 
 ## 威胁示例
 
@@ -160,7 +174,7 @@ AgentFirewall 首先面向 Python 生态中的 Agent 运行时，例如：
 这个仓库目前还没有：
 
 - 稳定的公开 API
-- 内建的 approval workflow 或 reviewer integration
+- 内建的 reviewer workflow 或 approval UI
 - 面向误报控制和部署安全的生产级打磨
 - 覆盖所有 runtime surface 的完整 enforcement layer
 - 来自真实 agent workflow 的更广泛试跑数据
@@ -171,8 +185,8 @@ AgentFirewall 首先面向 Python 生态中的 Agent 运行时，例如：
 ## 路线图
 
 - 持续围绕核心策略引擎打磨 in-process Python SDK
-- 先把第一个官方 LangGraph adapter 做扎实，并跑真实本地 workflow
-- 在更大范围 public alpha 之前补上 evals 和显式 approval path
+- 继续把 LangGraph adapter 在真实本地 workflow 上打磨扎实
+- 在更大范围 public alpha 之前继续扩充 evals 和 approval handling
 - 在 `0.1.0a1` 之前收敛公开 API
 - 在 API 逐步稳定的同时继续发布 PyPI 预览版本
 - 在 SDK 模式稳定后，再探索 sidecar 或 proxy 形态

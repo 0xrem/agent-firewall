@@ -1,3 +1,4 @@
 include examples/demo_agent.py
 include examples/langgraph_agent.py
+recursive-include src/agentfirewall/evals/cases *.json
 recursive-include tests/fixtures *.json

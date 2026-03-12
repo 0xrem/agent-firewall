@@ -10,6 +10,8 @@ This document expands on the product position defined in `README.md`.
 
 This file records phased architecture decisions, integration priorities, and sequencing for the current stage of the project.
 
+Trial-run findings should be captured in `docs/strategy/TRIAL_RUN_LOG.md`.
+
 ## Product Boundary
 
 AgentFirewall is not meant to be a generic static scanner, passive probe, or trust registry.
@@ -458,6 +460,13 @@ The recommended next milestone is `0.0.5` as the evals and approval-flow release
 
 The purpose of `0.0.5` is to make AgentFirewall demonstrably effective instead of only structurally correct.
 
+The concrete implementation focus for this release is:
+
+- a packaged eval suite for the first official LangGraph adapter
+- an explicit approval hook that can approve, deny, or time out reviewed actions
+- repeatable local output that a prospective user can run without external services
+- a lightweight place to track trial-run findings inside the repo
+
 ### Definition Of Done For 0.0.5
 
 1. The project contains a first-class eval suite with benign and adversarial cases.
@@ -499,11 +508,20 @@ Minimum goal:
 - record unexpected allows and unexpected blocks
 - make the results easy to include in release notes and demos
 
+#### 5. Trial-Run Notes
+
+Minimum goal:
+
+- track local and early trial findings in a versioned document
+- record false positives, false negatives, and integration friction explicitly
+- keep those notes close to the strategy docs instead of scattered in ad hoc comments
+
 ### Exit Criteria Before 0.0.6
 
 1. The adapter can be demonstrated with repeatable eval output.
 2. `review` can be resolved through an explicit approval path.
 3. False positives and false negatives are visible enough to guide iteration.
+4. Trial findings are recorded in a stable in-repo place, not only in chat or commit messages.
 
 ## 0.0.6 Milestone
 

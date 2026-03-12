@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from agentfirewall import (
     AgentFirewall,
+    ApprovalResponse,
     FirewallConfig,
     InMemoryAuditSink,
     ReviewRequired,
@@ -47,11 +48,12 @@ def shell(command: str) -> str:
     return f"shell:{command}"
 
 
-def build_firewall() -> AgentFirewall:
+def build_firewall(*, approval_handler=None) -> AgentFirewall:
     return AgentFirewall(
         config=FirewallConfig(name="langgraph-demo"),
         policy=build_builtin_policy_engine(named_policy_pack("default")),
         audit_sink=InMemoryAuditSink(),
+        approval_handler=approval_handler,
     )
 
 
@@ -117,6 +119,41 @@ def run_review_flow() -> None:
         print(f"review required: {exc}")
 
 
+def run_approved_review_flow() -> None:
+    print("== approved langgraph tool flow ==")
+    firewall = build_firewall(
+        approval_handler=lambda request: ApprovalResponse.approve(
+            reason="Local demo reviewer approved the shell tool."
+        )
+    )
+    model = ToolCallingFakeModel(
+        messages=iter(
+            [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "id": "call_shell_approved",
+                            "name": "shell",
+                            "args": {"command": "ls"},
+                            "type": "tool_call",
+                        }
+                    ],
+                ),
+                AIMessage(content="Approved shell tool completed."),
+            ]
+        )
+    )
+    agent = create_firewalled_langgraph_agent(
+        model=model,
+        tools=[status, shell],
+        firewall=firewall,
+    )
+    result = agent.invoke({"messages": [{"role": "user", "content": "Open a shell and list files."}]})
+    print(result["messages"][-1].content)
+    print(firewall.audit_sink.to_json(indent=2))  # type: ignore[union-attr]
+
+
 def run_prompt_review_flow() -> None:
     print("== prompt review before model call ==")
     firewall = build_firewall()
@@ -146,6 +183,7 @@ def run_prompt_review_flow() -> None:
 def main() -> None:
     run_safe_flow()
     run_review_flow()
+    run_approved_review_flow()
     run_prompt_review_flow()
 
 

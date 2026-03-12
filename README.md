@@ -33,7 +33,7 @@ For release-by-release highlights, see [CHANGELOG.md](./CHANGELOG.md).
 
 The initial implementation target is an in-process Python SDK for supported agent runtimes.
 
-The `main` branch is now shaping the `0.0.4` preview foundation for that SDK.
+The `main` branch is now shaping the `0.0.5` preview for evals and approval-flow hardening.
 
 ## What AgentFirewall Is
 
@@ -109,7 +109,7 @@ The current preview includes:
 
 - a normalized event model for prompt, tool, command, file, and HTTP surfaces
 - a policy engine with `allow`, `block`, `review`, and `log` decisions
-- approval-gated `review` decisions for enforced runtime surfaces
+- explicit approval hooks for `review` decisions on enforced runtime surfaces
 - config-driven built-in policy packs for `default` and `strict` modes
 - stricter outbound request validation for unsupported schemes and missing hostnames
 - structured audit export for local inspection and regression testing
@@ -117,7 +117,21 @@ The current preview includes:
 - a tool-dispatch contract that preserves positional and keyword arguments
 - the first official LangGraph adapter preview
 - a runnable demo in `examples/demo_agent.py`
-- a local LangGraph demo in `examples/langgraph_agent.py`
+- a local LangGraph demo with review and approval flows in `examples/langgraph_agent.py`
+- a packaged LangGraph eval runner in `python -m agentfirewall.evals.langgraph`
+
+## Local Validation
+
+Install the optional LangGraph extra and run the local demos:
+
+```bash
+python -m pip install -e '.[langgraph]'
+PYTHONPATH=src python examples/demo_agent.py
+PYTHONPATH=src python examples/langgraph_agent.py
+PYTHONPATH=src python -m agentfirewall.evals.langgraph
+```
+
+The eval runner prints a JSON summary with pass/fail totals plus observed `allow`, `block`, and `review` outcomes.
 
 ## Example Threat
 
@@ -162,7 +176,7 @@ AgentFirewall is initially aimed at Python agent runtimes such as:
 The repository does not yet include:
 
 - a stable public API
-- a built-in approval workflow or reviewer integration
+- a built-in reviewer workflow or approval UI
 - production hardening for false positives and deployment safety
 - a complete enforcement layer for every runtime surface
 - broader runtime trial data from real agent workflows
@@ -173,8 +187,8 @@ That is why the README describes the intended shape of the product more than a f
 ## Roadmap
 
 - Keep hardening the in-process Python SDK around a core policy engine
-- Ship the first official LangGraph adapter and validate it on realistic local workflows
-- Add evals and an explicit approval path before broader public alpha
+- Keep validating the LangGraph adapter on realistic local workflows
+- Expand evals and approval handling before broader public alpha
 - Freeze the public API before `0.1.0a1`
 - Continue shipping PyPI preview releases while the API settles
 - Explore sidecar or proxy deployment patterns after the SDK model is solid
