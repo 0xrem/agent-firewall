@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import io
 import json
+import subprocess
 from dataclasses import dataclass, field
 from enum import Enum
 from importlib import resources
@@ -13,9 +15,13 @@ from ..approval import ApprovalHandler, ApprovalOutcome, ApprovalResponse
 from ..audit import InMemoryAuditSink
 from ..config import FirewallConfig
 from ..exceptions import FirewallViolation, ReviewRequired
-from ..firewall import AgentFirewall
-from ..integrations.langgraph import create_firewalled_langgraph_agent
-from ..policy_packs import build_builtin_policy_engine, named_policy_pack
+from ..firewall import create_firewall
+from ..langgraph import (
+    create_agent,
+    create_file_reader_tool,
+    create_http_tool,
+    create_shell_tool,
+)
 
 try:
     from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
@@ -50,9 +56,14 @@ class LangGraphEvalCase:
 
     name: str
     prompt: str
+    task: str = ""
+    workflow_goal: str = ""
+    model_messages: list[dict[str, Any]] = field(default_factory=list)
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
     expected_status: EvalRunStatus | str = EvalRunStatus.COMPLETED
     expected_final_action: str = "allow"
+    expected_event_kinds: list[str] = field(default_factory=list)
+    expected_action_sequence: list[str] = field(default_factory=list)
     final_response: str = "done"
     approval_outcome: ApprovalOutcome | str | None = None
     approval_reason: str = ""
@@ -70,12 +81,19 @@ class EvaluationResult:
     """Observed result for a single eval case."""
 
     name: str
+    task: str
+    workflow_goal: str
     status: EvalRunStatus
     expected_status: EvalRunStatus
     matched: bool
+    observed_event_kinds: list[str]
     observed_actions: list[str]
     expected_final_action: str
     observed_final_action: str
+    expected_event_kinds: list[str] = field(default_factory=list)
+    expected_action_sequence: list[str] = field(default_factory=list)
+    audit_summary: dict[str, Any] = field(default_factory=dict)
+    audit_trace: list[dict[str, Any]] = field(default_factory=list)
     detail: str = ""
 
 
@@ -114,6 +132,14 @@ class EvaluationSummary:
         return counts
 
     @property
+    def task_counts(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for result in self.results:
+            key = result.task or "unlabeled"
+            counts[key] = counts.get(key, 0) + 1
+        return counts
+
+    @property
     def unexpected_allows(self) -> int:
         return sum(
             1
@@ -144,18 +170,26 @@ class EvaluationSummary:
             "failed": self.failed,
             "status_counts": self.status_counts,
             "final_action_counts": self.final_action_counts,
+            "task_counts": self.task_counts,
             "unexpected_allows": self.unexpected_allows,
             "unexpected_blocks": self.unexpected_blocks,
             "unexpected_reviews": self.unexpected_reviews,
             "results": [
                 {
                     "name": result.name,
+                    "task": result.task,
+                    "workflow_goal": result.workflow_goal,
                     "status": result.status.value,
                     "expected_status": result.expected_status.value,
                     "matched": result.matched,
+                    "observed_event_kinds": result.observed_event_kinds,
                     "observed_actions": result.observed_actions,
                     "expected_final_action": result.expected_final_action,
                     "observed_final_action": result.observed_final_action,
+                    "expected_event_kinds": result.expected_event_kinds,
+                    "expected_action_sequence": result.expected_action_sequence,
+                    "audit_summary": result.audit_summary,
+                    "audit_trace": result.audit_trace,
                     "detail": result.detail,
                 }
                 for result in self.results
@@ -184,9 +218,18 @@ def load_langgraph_eval_cases(path: str | Traversable | None = None) -> list[Lan
 
 def _build_model(case: LangGraphEvalCase) -> ToolCallingFakeModel:
     messages: list[AIMessage] = []
-    if case.tool_calls:
-        messages.append(AIMessage(content="", tool_calls=case.tool_calls))
-    messages.append(AIMessage(content=case.final_response))
+    if case.model_messages:
+        for payload in case.model_messages:
+            messages.append(
+                AIMessage(
+                    content=str(payload.get("content", "")),
+                    tool_calls=list(payload.get("tool_calls", [])),
+                )
+            )
+    else:
+        if case.tool_calls:
+            messages.append(AIMessage(content="", tool_calls=case.tool_calls))
+        messages.append(AIMessage(content=case.final_response))
     return ToolCallingFakeModel(messages=iter(messages))
 
 
@@ -220,6 +263,22 @@ def _make_approval_handler(case: LangGraphEvalCase) -> ApprovalHandler | None:
     return handler
 
 
+def _fake_shell_runner(command, *, shell=False, cwd=None, **kwargs):
+    return subprocess.CompletedProcess(
+        args=command,
+        returncode=0,
+        stdout="repo files\n",
+    )
+
+
+def _fake_http_opener(request, **kwargs):
+    return io.BytesIO(b'{"status":"ok"}')
+
+
+def _fake_file_opener(path, mode="r", **kwargs):
+    return io.StringIO("README CONTENT")
+
+
 def run_langgraph_eval_case(case: LangGraphEvalCase) -> EvaluationResult:
     """Run one LangGraph eval case locally."""
 
@@ -229,25 +288,32 @@ def run_langgraph_eval_case(case: LangGraphEvalCase) -> EvaluationResult:
 
         return f"status:{message}"
 
-    @tool
-    def shell(command: str) -> str:
-        """Run a shell command."""
-
-        return f"shell:{command}"
-
     audit_sink = InMemoryAuditSink()
-    firewall = AgentFirewall(
+    firewall = create_firewall(
         config=FirewallConfig(
             name=f"eval:{case.name}",
             log_only=case.log_only,
         ),
-        policy=build_builtin_policy_engine(named_policy_pack("default")),
         audit_sink=audit_sink,
         approval_handler=_make_approval_handler(case),
     )
-    agent = create_firewalled_langgraph_agent(
+    agent = create_agent(
         model=_build_model(case),
-        tools=[status, shell],
+        tools=[
+            status,
+            create_shell_tool(
+                firewall=firewall,
+                runner=_fake_shell_runner,
+            ),
+            create_http_tool(
+                firewall=firewall,
+                opener=_fake_http_opener,
+            ),
+            create_file_reader_tool(
+                firewall=firewall,
+                opener=_fake_file_opener,
+            ),
+        ],
         firewall=firewall,
     )
 
@@ -266,20 +332,56 @@ def run_langgraph_eval_case(case: LangGraphEvalCase) -> EvaluationResult:
         status_value = EvalRunStatus.ERROR
         detail = f"{type(exc).__name__}: {exc}"
 
+    observed_event_kinds = [entry.event.kind.value for entry in audit_sink.entries]
     observed_actions = [entry.decision.action.value for entry in audit_sink.entries]
     observed_final_action = observed_actions[-1] if observed_actions else "none"
     matched = (
         status_value == case.expected_status
         and observed_final_action == case.expected_final_action
+        and (
+            not case.expected_event_kinds
+            or observed_event_kinds == case.expected_event_kinds
+        )
+        and (
+            not case.expected_action_sequence
+            or observed_actions == case.expected_action_sequence
+        )
     )
+    if not matched and not detail:
+        detail = (
+            "Expected status/action/trace did not match. "
+            f"observed_status={status_value.value}, "
+            f"observed_final_action={observed_final_action}, "
+            f"observed_event_kinds={observed_event_kinds}, "
+            f"observed_actions={observed_actions}"
+        )
     return EvaluationResult(
         name=case.name,
+        task=case.task,
+        workflow_goal=case.workflow_goal,
         status=status_value,
         expected_status=case.expected_status,
         matched=matched,
+        observed_event_kinds=observed_event_kinds,
         observed_actions=observed_actions,
         expected_final_action=case.expected_final_action,
         observed_final_action=observed_final_action,
+        expected_event_kinds=list(case.expected_event_kinds),
+        expected_action_sequence=list(case.expected_action_sequence),
+        audit_summary=audit_sink.summary().to_dict(),
+        audit_trace=[
+            {
+                "event_kind": entry.event.kind.value,
+                "action": entry.decision.action.value,
+                "rule": entry.decision.rule,
+                "source": entry.event.source,
+                "decision_metadata": dict(entry.decision.metadata),
+                "runtime_context": dict(
+                    entry.event.payload.get("runtime_context", {})
+                ),
+            }
+            for entry in audit_sink.entries
+        ],
         detail=detail,
     )
 

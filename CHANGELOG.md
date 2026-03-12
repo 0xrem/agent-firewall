@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.0a1 - Pending Release
+
+- Narrowed the alpha-facing root API to core firewall construction and moved the supported runtime path behind `agentfirewall.langgraph`.
+- Added `agentfirewall.approval.StaticApprovalHandler` plus shorthand helpers as the documented alpha approval path for demos, evals, and simple integrations.
+- Added official guarded LangGraph tool factories for shell, outbound HTTP, and file reads so one firewall instance can protect both middleware events and tool side effects.
+- Added correlated runtime-context metadata so guarded shell, HTTP, and file events can be linked back to the originating LangGraph tool call.
+- Expanded audit summaries so local trials and evals now break results down by source and tool name.
+- Added `log-only` workflow coverage to the LangGraph eval and trial paths, including preserved `original_action` metadata in trace output.
+- Expanded the packaged LangGraph eval suite from 6 to 17 task-oriented local cases and added explicit event-sequence assertions to the JSON output.
+- Expanded the LangGraph demos and trial runner to exercise guarded shell, HTTP, and file flows on the supported path, including 9 ordered task-oriented workflow traces with tool-call correlation.
+- Added an explicit supported-alpha path document so the quick start, approval path, local validation commands, and support boundary live in one place.
+- Added a release-readiness document that captures the `0.1.0a1` supported contract, validation evidence, known limits, and publish checklist.
+
 ## 0.0.5 - 2026-03-12
 
 - Added an explicit approval-hook contract so reviewed actions can be approved, denied, or timed out without relying only on exceptions.

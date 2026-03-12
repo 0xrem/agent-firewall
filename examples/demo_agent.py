@@ -2,21 +2,16 @@
 
 from __future__ import annotations
 
-from agentfirewall import (
-    AgentFirewall,
-    EventContext,
-    FirewallConfig,
-    GuardedToolDispatcher,
-    InMemoryAuditSink,
-    build_builtin_policy_engine,
-    named_policy_pack,
-)
+from agentfirewall import AgentFirewall, FirewallConfig, InMemoryAuditSink
+from agentfirewall.enforcers import GuardedToolDispatcher
 from agentfirewall.enforcers import (
     GuardedFileAccess,
     GuardedHttpClient,
     GuardedSubprocessRunner,
 )
+from agentfirewall.events import EventContext
 from agentfirewall.exceptions import FirewallViolation, ReviewRequired
+from agentfirewall.policy_packs import build_builtin_policy_engine, named_policy_pack
 
 
 def fake_runner(command, *, shell=False, **kwargs):

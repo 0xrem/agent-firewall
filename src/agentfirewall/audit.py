@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,6 +31,28 @@ class AuditEntry:
         }
 
 
+@dataclass(slots=True)
+class AuditSummary:
+    """Aggregate counts for a group of audit entries."""
+
+    total: int
+    action_counts: dict[str, int]
+    event_kind_counts: dict[str, int]
+    rule_counts: dict[str, int]
+    source_counts: dict[str, int]
+    tool_name_counts: dict[str, int]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "total": self.total,
+            "action_counts": dict(self.action_counts),
+            "event_kind_counts": dict(self.event_kind_counts),
+            "rule_counts": dict(self.rule_counts),
+            "source_counts": dict(self.source_counts),
+            "tool_name_counts": dict(self.tool_name_counts),
+        }
+
+
 class AuditSink(Protocol):
     """Minimal sink interface for audit destinations."""
 
@@ -51,6 +74,42 @@ class InMemoryAuditSink:
 
     def export(self) -> list[dict[str, object]]:
         return [entry.to_dict() for entry in self.entries]
+
+    def summary(self) -> AuditSummary:
+        action_counts: dict[str, int] = {}
+        event_kind_counts: dict[str, int] = {}
+        rule_counts: dict[str, int] = {}
+        source_counts: dict[str, int] = {}
+        tool_name_counts: dict[str, int] = {}
+
+        for entry in self.entries:
+            action = entry.decision.action.value
+            kind = entry.event.kind.value
+            rule = entry.decision.rule or "unknown"
+            source = entry.event.source or "unknown"
+            tool_name = ""
+            if entry.event.kind.value == "tool_call":
+                tool_name = str(entry.event.payload.get("name", "")).lower()
+            else:
+                runtime_context = entry.event.payload.get("runtime_context")
+                if isinstance(runtime_context, Mapping):
+                    tool_name = str(runtime_context.get("tool_name", "")).lower()
+
+            action_counts[action] = action_counts.get(action, 0) + 1
+            event_kind_counts[kind] = event_kind_counts.get(kind, 0) + 1
+            rule_counts[rule] = rule_counts.get(rule, 0) + 1
+            source_counts[source] = source_counts.get(source, 0) + 1
+            if tool_name:
+                tool_name_counts[tool_name] = tool_name_counts.get(tool_name, 0) + 1
+
+        return AuditSummary(
+            total=len(self.entries),
+            action_counts=action_counts,
+            event_kind_counts=event_kind_counts,
+            rule_counts=rule_counts,
+            source_counts=source_counts,
+            tool_name_counts=tool_name_counts,
+        )
 
     def to_json(self, *, indent: int = 2) -> str:
         return json.dumps(self.export(), indent=indent, sort_keys=True)

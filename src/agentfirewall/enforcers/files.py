@@ -7,6 +7,7 @@ from typing import Any, Callable
 
 from ..events import EventContext
 from ..firewall import AgentFirewall
+from ..runtime_context import attach_runtime_context
 
 
 def _normalize_mode(mode: str) -> str:
@@ -25,10 +26,12 @@ class GuardedFileAccess:
     source: str = "agent"
 
     def open(self, path: str, mode: str = "r", **kwargs: Any) -> Any:
-        event = EventContext.file_access(
-            path,
-            mode=_normalize_mode(mode),
-            source=self.source,
+        event = attach_runtime_context(
+            EventContext.file_access(
+                path,
+                mode=_normalize_mode(mode),
+                source=self.source,
+            )
         )
         self.firewall.enforce(event)
         return self.opener(path, mode, **kwargs)

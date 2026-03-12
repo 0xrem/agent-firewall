@@ -345,16 +345,17 @@ Once those conditions are met, `0.0.4` can focus on the first real runtime adapt
 
 The project should not stay in `0.0.x` indefinitely.
 
-From the current state, the recommended path is:
+From the current state, the recommended public release path is:
 
 1. `0.0.4` for the first official runtime adapter.
 2. `0.0.5` for evals and approval-flow hardening.
-3. `0.0.6` for public API freeze preview.
-4. `0.1.0a1` for the first public alpha.
-5. `0.1.0b1` for beta hardening.
-6. `1.0.0` only when one supported runtime feels reliably usable end to end.
+3. `0.1.0a1` for the first public alpha.
+4. `0.1.0b1` for beta hardening.
+5. `1.0.0` only when one supported runtime feels reliably usable end to end.
 
-Do not continue extending `0.0.x` past `0.0.6` unless there is a concrete blocker to shipping `0.1.0a1`.
+Do not continue extending `0.0.x` past `0.0.5` unless there is a concrete blocker that prevents shipping a credible `0.1.0a1`.
+
+After `0.0.5`, iteration should happen as larger milestone tracks on `main`, not as many additional micro releases.
 
 ## Release Discipline
 
@@ -516,38 +517,113 @@ Minimum goal:
 - record false positives, false negatives, and integration friction explicitly
 - keep those notes close to the strategy docs instead of scattered in ad hoc comments
 
-### Exit Criteria Before 0.0.6
+### Exit Criteria Before 0.1.0a1
 
 1. The adapter can be demonstrated with repeatable eval output.
 2. `review` can be resolved through an explicit approval path.
 3. False positives and false negatives are visible enough to guide iteration.
 4. Trial findings are recorded in a stable in-repo place, not only in chat or commit messages.
 
-## 0.0.6 Milestone
+## Path From 0.0.5 To 0.1.0a1
 
-The recommended next milestone is `0.0.6` as the API freeze preview release.
+The next phase should be a concentrated hardening cycle, not another sequence of tiny public preview tags.
 
-The purpose of `0.0.6` is to make the package feel stable enough to invite real external usage ahead of `0.1.0a1`.
+The purpose of this phase is to make the package feel stable enough to invite real external usage in `0.1.0a1`.
 
-### Definition Of Done For 0.0.6
+### Main Iteration Tracks
 
-1. The public Python API is intentionally narrowed and documented.
-2. Migration notes exist for any API churn introduced during `0.0.x`.
-3. Quick start documentation uses a real supported adapter path.
-4. The configuration model is stable enough to stop changing in every patch release.
-5. The supported adapter, evals, and approval flow all work together in the documented path.
+#### 1. LangGraph Path Hardening
+
+Minimum goal:
+
+- tighten the first official LangGraph integration around realistic workflows
+- make the same firewall instance drive both LangGraph middleware and guarded side-effect tools
+- turn shell, file, and outbound HTTP flows into first-class supported LangGraph paths
+- eliminate obvious adapter friction in setup and usage
+- keep prompt, tool, approval, and audit behavior aligned across examples, evals, and docs
+
+#### 2. Public API Consolidation
+
+Minimum goal:
+
+- intentionally narrow the public Python API
+- keep top-level `agentfirewall` focused on core firewall construction and runtime-agnostic types
+- move the supported runtime path behind explicit modules such as `agentfirewall.langgraph`
+- keep one documented approval-helper path under `agentfirewall.approval`
+- keep high-level entry points stable enough to survive alpha
+- document the supported path clearly instead of exposing every low-level primitive as equal priority
+
+Current working rule:
+
+- top-level `agentfirewall` should be the small alpha-facing surface
+- `agentfirewall.langgraph` should hold the supported runtime entrypoints
+- `agentfirewall.approval` should hold the documented deterministic approval helpers used by demos, evals, and simple integrations
+- low-level helpers should stay in explicit modules such as `agentfirewall.enforcers`, `agentfirewall.audit`, and `agentfirewall.policy_packs`
+- any legacy root imports should be treated as compatibility shims, not as the preferred supported path
+
+#### 3. Quick Start And Packaging Reality
+
+Minimum goal:
+
+- make the documented quick start use the real supported adapter path
+- close the alpha docs loop with one repo-visible supported-path document
+- ensure install extras, package data, examples, and local eval commands all work as documented
+- keep the packaged eval path aligned with the official guarded LangGraph shell, file, and HTTP tools
+- remove setup ambiguity that would weaken first impressions during alpha
+
+#### 4. Trial-Run Hardening
+
+Minimum goal:
+
+- run the supported path against more realistic agent workflows
+- keep at least one multi-step local workflow as a stable alpha-facing smoke path
+- make audit evidence strong enough to correlate guarded side effects back to the triggering tool call
+- summarize local findings clearly enough to spot pressure on specific sources and tools
+- record false positives, false negatives, and integration pain in the repo
+- use those findings to tune policy packs and adapter defaults
 
 ### Exit Criteria Before 0.1.0a1
 
 1. The documented quick start works without hidden setup assumptions.
-2. The core API is stable enough to carry into alpha with only additive changes.
-3. The project has enough demo and eval evidence to justify broader public feedback.
+2. The LangGraph path is convincing enough that a new user can see value quickly.
+3. The core API is stable enough to carry into alpha with only additive changes.
+4. The approval path is documented clearly enough that `review` behavior is predictable for new users.
+5. The project has enough demo and eval evidence to justify broader public feedback.
+6. Trial-run findings have informed at least one meaningful hardening pass.
+
+### Immediate Next Implementation Focus
+
+The next coding work should stay tightly on the supported LangGraph path.
+
+Build in this order:
+
+1. tighten the public LangGraph entry points and remove avoidable API ambiguity
+2. make the official guarded LangGraph shell, file, and HTTP tools part of that supported path
+3. document one deterministic approval-helper path for demos, evals, and early adopters
+4. turn the LangGraph path into a true quick start that matches the documented install and run flow
+5. expand evals to cover more benign and adversarial tool and prompt patterns
+6. make workflow traces explainable enough that side-effect events can be tied back to the triggering tool call
+7. run realistic local trial workflows and record the findings in `TRIAL_RUN_LOG.md`
+8. use those findings to tune default policy-pack behavior before opening alpha feedback
 
 ## Alpha, Beta, And 1.0.0
 
 ### 0.1.0a1
 
 This should be the first public alpha, intended to collect outside integration feedback.
+
+Current release-readiness view on `main`:
+
+- the supported LangGraph path is now the only path being prepared for alpha
+- approval is documented through one deterministic helper path
+- evals and trial runs now cover task-oriented multi-step workflows, not only isolated tool calls
+- the API surface has been narrowed enough that alpha can collect feedback without another reset first
+
+What still remains out of scope for alpha:
+
+- a second official adapter
+- a reviewer UI
+- production-ready false-positive tuning
 
 ### 0.1.0b1
 
@@ -564,9 +640,10 @@ Definition of done for `1.0.0`:
 1. One official adapter is stable and well documented.
 2. Tool, command, file, and outbound-network enforcement are all demonstrably useful in that runtime.
 3. A review-required flow can be handled explicitly and predictably.
-4. The project includes repeatable evals that show both attack blocking and benign-path correctness.
+4. The project includes repeatable evals that show both attack blocking and benign-path correctness, including multi-step workflow paths.
 5. Real usage trials have informed at least one full hardening cycle.
-6. The quick start and release story are compelling enough that a new user can see value quickly.
+6. Audit evidence is clear enough that a user can understand which tool call caused a guarded side effect to be allowed or blocked.
+7. The quick start and release story are compelling enough that a new user can see value quickly.
 
 ## Recommended Build Order
 

@@ -16,6 +16,11 @@ from .config import FirewallConfig
 from .events import EventContext
 from .exceptions import FirewallViolation, ReviewRequired
 from .policy import Decision, DecisionAction, PolicyEngine, Rule
+from .policy_packs import (
+    PolicyPackConfig,
+    build_builtin_policy_engine,
+    named_policy_pack,
+)
 T = TypeVar("T")
 
 
@@ -165,3 +170,33 @@ def protect(
         approval_handler=approval_handler,
     )
     return firewall.wrap_agent(agent)
+
+
+def create_firewall(
+    *,
+    config: FirewallConfig | None = None,
+    policy_pack: str | PolicyPackConfig = "default",
+    audit_sink: AuditSink | None = None,
+    approval_handler: ApprovalHandler | None = None,
+) -> AgentFirewall:
+    """Create a firewall using the supported built-in policy-pack path."""
+
+    resolved_config = config or FirewallConfig()
+    resolved_policy_pack = (
+        named_policy_pack(policy_pack)
+        if isinstance(policy_pack, str)
+        else policy_pack
+    )
+    return AgentFirewall(
+        config=resolved_config,
+        policy=build_builtin_policy_engine(
+            resolved_policy_pack,
+            default_action=resolved_config.default_action,
+        ),
+        audit_sink=(
+            audit_sink
+            if audit_sink is not None
+            else InMemoryAuditSink()
+        ),
+        approval_handler=approval_handler,
+    )
