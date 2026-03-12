@@ -9,7 +9,7 @@ from .enforcers import (
     GuardedToolDispatcher,
 )
 from .events import EventContext, EventKind
-from .exceptions import AgentFirewallError, FirewallViolation
+from .exceptions import AgentFirewallError, FirewallViolation, ReviewRequired
 from .firewall import AgentFirewall, protect
 from .policy import Decision, DecisionAction, PolicyEngine, Rule
 from .policy_packs import (
@@ -39,6 +39,7 @@ __all__ = [
     "JsonLinesAuditSink",
     "PolicyEngine",
     "PolicyPackConfig",
+    "ReviewRequired",
     "Rule",
     "build_builtin_policy_engine",
     "default_policy_pack",

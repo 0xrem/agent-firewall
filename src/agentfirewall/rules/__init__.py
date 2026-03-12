@@ -3,6 +3,7 @@
 from .builtin import (
     BlockDangerousCommandRule,
     BlockDisallowedToolRule,
+    BlockInvalidOutboundRequestRule,
     BlockSensitiveFileAccessRule,
     BlockUntrustedHostRule,
     ReviewPromptInjectionRule,
@@ -13,6 +14,7 @@ from .builtin import (
 __all__ = [
     "BlockDangerousCommandRule",
     "BlockDisallowedToolRule",
+    "BlockInvalidOutboundRequestRule",
     "BlockSensitiveFileAccessRule",
     "BlockUntrustedHostRule",
     "ReviewPromptInjectionRule",

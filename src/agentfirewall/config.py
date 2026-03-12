@@ -16,3 +16,4 @@ class FirewallConfig:
     audit_enabled: bool = True
     log_only: bool = False
     raise_on_block: bool = True
+    raise_on_review: bool = True

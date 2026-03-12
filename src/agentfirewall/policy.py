@@ -37,6 +37,10 @@ class Decision:
     def is_blocking(self) -> bool:
         return self.action == DecisionAction.BLOCK
 
+    @property
+    def requires_review(self) -> bool:
+        return self.action == DecisionAction.REVIEW
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "action": self.action.value,

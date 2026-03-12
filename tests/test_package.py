@@ -18,7 +18,7 @@ from agentfirewall import (
     protect,
 )
 from agentfirewall.enforcers import GuardedHttpClient, GuardedSubprocessRunner
-from agentfirewall.exceptions import FirewallViolation
+from agentfirewall.exceptions import FirewallViolation, ReviewRequired
 from agentfirewall.policy import PolicyEngine
 
 
@@ -92,6 +92,16 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(decision.action, DecisionAction.BLOCK)
         self.assertEqual(decision.rule, "block_disallowed_tool")
 
+    def test_enforce_raises_on_review_by_default(self) -> None:
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default"))
+        )
+
+        with self.assertRaises(ReviewRequired):
+            firewall.enforce(
+                EventContext.tool_call("shell", kwargs={"command": "ls"})
+            )
+
     def test_log_only_mode_converts_block_to_log(self) -> None:
         firewall = AgentFirewall(
             config=FirewallConfig(log_only=True),
@@ -104,6 +114,19 @@ class PackageTests(unittest.TestCase):
 
         self.assertEqual(decision.action, DecisionAction.LOG)
         self.assertEqual(decision.metadata["original_action"], "block")
+
+    def test_log_only_mode_converts_review_to_log(self) -> None:
+        firewall = AgentFirewall(
+            config=FirewallConfig(log_only=True),
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+        )
+
+        decision = firewall.evaluate(
+            EventContext.tool_call("shell", kwargs={"command": "ls"})
+        )
+
+        self.assertEqual(decision.action, DecisionAction.LOG)
+        self.assertEqual(decision.metadata["original_action"], "review")
 
     def test_audit_sink_records_decision(self) -> None:
         audit_sink = InMemoryAuditSink()
@@ -179,6 +202,40 @@ class PackageTests(unittest.TestCase):
 
         self.assertEqual(calls, [])
 
+    def test_http_client_blocks_invalid_scheme_before_request(self) -> None:
+        calls: list[object] = []
+
+        def fake_opener(request, **kwargs):
+            calls.append((request, kwargs))
+            return "opened"
+
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default"))
+        )
+        client = GuardedHttpClient(firewall=firewall, opener=fake_opener)
+
+        with self.assertRaises(FirewallViolation):
+            client.request("file:///etc/passwd")
+
+        self.assertEqual(calls, [])
+
+    def test_http_client_blocks_missing_hostname_before_request(self) -> None:
+        calls: list[object] = []
+
+        def fake_opener(request, **kwargs):
+            calls.append((request, kwargs))
+            return "opened"
+
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default"))
+        )
+        client = GuardedHttpClient(firewall=firewall, opener=fake_opener)
+
+        with self.assertRaises(FirewallViolation):
+            client.request("https:///missing-host")
+
+        self.assertEqual(calls, [])
+
     def test_http_client_allows_trusted_host(self) -> None:
         calls: list[object] = []
 
@@ -215,6 +272,24 @@ class PackageTests(unittest.TestCase):
 
         self.assertEqual(calls, [])
 
+    def test_tool_dispatch_requires_review_before_execution(self) -> None:
+        calls: list[object] = []
+
+        def shell_tool(**kwargs):
+            calls.append(kwargs)
+            return "ran"
+
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default"))
+        )
+        tools = GuardedToolDispatcher(firewall=firewall)
+        tools.register("shell", shell_tool)
+
+        with self.assertRaises(ReviewRequired):
+            tools.dispatch("shell", command="ls")
+
+        self.assertEqual(calls, [])
+
     def test_tool_dispatch_blocks_before_execution(self) -> None:
         calls: list[object] = []
 
@@ -229,7 +304,7 @@ class PackageTests(unittest.TestCase):
         tools.register("shell", shell_tool)
 
         with self.assertRaises(FirewallViolation):
-            tools.dispatch("shell", arguments={"command": "ls"})
+            tools.dispatch("shell", command="ls")
 
         self.assertEqual(calls, [])
 
@@ -240,7 +315,30 @@ class PackageTests(unittest.TestCase):
         tools = GuardedToolDispatcher(firewall=firewall)
         tools.register("status", lambda message: f"status:{message}")
 
-        result = tools.dispatch("status", arguments={"message": "ok"})
+        result = tools.dispatch("status", message="ok")
+
+        self.assertEqual(result, "status:ok")
+
+    def test_tool_dispatch_allows_review_when_raise_on_review_disabled(self) -> None:
+        firewall = AgentFirewall(
+            config=FirewallConfig(raise_on_review=False),
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+        )
+        tools = GuardedToolDispatcher(firewall=firewall)
+        tools.register("shell", lambda command: f"shell:{command}")
+
+        result = tools.dispatch("shell", command="ls")
+
+        self.assertEqual(result, "shell:ls")
+
+    def test_tool_dispatch_supports_positional_args(self) -> None:
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default"))
+        )
+        tools = GuardedToolDispatcher(firewall=firewall)
+        tools.register("status", lambda message: f"status:{message}")
+
+        result = tools.dispatch("status", "ok")
 
         self.assertEqual(result, "status:ok")
 
@@ -282,7 +380,13 @@ class PackageTests(unittest.TestCase):
         if kind == "tool_call":
             return EventContext.tool_call(
                 str(payload["name"]),
-                arguments=dict(payload.get("arguments", {})),
+                args=tuple(payload.get("args", ())),
+                kwargs=dict(
+                    payload.get(
+                        "kwargs",
+                        payload.get("arguments", {}),
+                    )
+                ),
             )
         raise AssertionError(f"Unsupported fixture kind: {kind}")
 

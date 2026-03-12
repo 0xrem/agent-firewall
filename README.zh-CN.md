@@ -21,17 +21,19 @@ AgentFirewall 是一个处于早期阶段的 Python 项目，目标是在 AI Age
 
 ## 项目状态
 
-> 预发布阶段。这个项目目前还没有发布到 PyPI，公开 API 也还在设计中。
+> 预 Alpha 阶段。AgentFirewall 已经发布到 PyPI，但 `0.0.x` 阶段的 API 还会继续变化。
 
-现在这个仓库更适合被理解为一个早期产品提案，而不是一个已经可以直接投入生产的安全系统。
+现在这个仓库更适合被理解为一个早期 runtime firewall 预览，而不是一个已经可以直接投入生产的安全系统。
 
 这个 README 是产品定位和边界的主文档。
 
 关于分阶段架构记录，可以查看 [docs/strategy/PRODUCT_DIRECTION.md](./docs/strategy/PRODUCT_DIRECTION.md)。
 
+关于每个版本的重点变化，可以查看 [CHANGELOG.md](./CHANGELOG.md)。
+
 当前最初的实现目标，是一个面向已支持 Agent runtime 的 in-process Python SDK。
 
-当前代码仓库已经具备这个 SDK 的 `0.0.2` 预览地基。
+`main` 分支当前正在推进这个 SDK 的 `0.0.3` 预览地基。
 
 ## AgentFirewall 是什么
 
@@ -57,6 +59,8 @@ AgentFirewall 的目标就是以内联 runtime firewall 的方式卡在这个边
 - block
 - require approval
 - log for audit
+
+在 enforced surface 上，`review` 默认应该暂停执行，直到 runtime 显式处理审批。
 
 计划覆盖的执行面包括：
 
@@ -103,9 +107,12 @@ agent = firewall.wrap_agent(agent)
 
 - 一个覆盖 prompt、tool、command、file、HTTP 的统一事件模型
 - 一个支持 `allow`、`block`、`review`、`log` 的策略决策引擎
+- 在 enforced runtime surface 上默认启用审批门控的 `review` 语义
 - 面向 `default` 和 `strict` 模式的配置驱动内建 policy packs
+- 对不受支持 scheme 和缺失 hostname 的出站请求做更严格校验
 - 适合本地观察和回归测试的结构化 audit 导出能力
 - 对 tool、subprocess、文件访问和 HTTP 的 guarded execution helpers
+- 一个能保留位置参数和关键字参数的 tool dispatch 契约
 - 一个可运行的 `examples/demo_agent.py` 示例
 
 ## 威胁示例
@@ -152,6 +159,7 @@ AgentFirewall 首先面向 Python 生态中的 Agent 运行时，例如：
 
 - 框架适配器
 - 稳定的公开 API
+- 内建的 approval workflow 或 reviewer integration
 - 面向误报控制和部署安全的生产级打磨
 - 覆盖所有 runtime surface 的完整 enforcement layer
 - 来自真实 agent workflow 的更广泛试跑数据
@@ -160,10 +168,10 @@ AgentFirewall 首先面向 Python 生态中的 Agent 运行时，例如：
 
 ## 路线图
 
-- 先以核心策略引擎为中心做 in-process Python SDK
-- 增加对工具、命令、文件和网络访问的拦截点
-- 为选定的 Python Agent runtime 提供第一批框架适配器
-- 发布一个可安装的预览版本
+- 持续围绕核心策略引擎打磨 in-process Python SDK
+- 收紧 approval 语义、出站请求校验，以及面向 adapter 的执行契约
+- 等这些契约稳定后，再为选定的 Python Agent runtime 提供第一批框架适配器
+- 在 API 逐步稳定的同时继续发布 PyPI 预览版本
 - 在 SDK 模式稳定后，再探索 sidecar 或 proxy 形态
 
 ## 贡献

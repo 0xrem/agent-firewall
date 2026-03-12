@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Iterable
+from urllib.parse import urlparse
 
 from .serialization import to_jsonable
 
@@ -24,6 +26,22 @@ def _command_to_text(command: str | Iterable[str]) -> str:
         return command
 
     return " ".join(str(part) for part in command)
+
+
+def _normalize_tool_kwargs(
+    *,
+    kwargs: Mapping[str, Any] | None,
+    arguments: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if kwargs is not None and arguments is not None:
+        raise TypeError("Pass either kwargs or arguments, not both.")
+
+    if kwargs is not None:
+        return dict(kwargs)
+    if arguments is not None:
+        return dict(arguments)
+
+    return {}
 
 
 @dataclass(slots=True)
@@ -63,13 +81,25 @@ class EventContext:
         cls,
         name: str,
         *,
-        arguments: dict[str, Any] | None = None,
+        args: Sequence[Any] = (),
+        kwargs: Mapping[str, Any] | None = None,
+        arguments: Mapping[str, Any] | None = None,
         source: str = "agent",
     ) -> "EventContext":
+        normalized_kwargs = _normalize_tool_kwargs(
+            kwargs=kwargs,
+            arguments=arguments,
+        )
         return cls(
             kind=EventKind.TOOL_CALL,
             operation="dispatch",
-            payload={"name": name, "arguments": arguments or {}},
+            payload={
+                "name": name,
+                "args": list(args),
+                "kwargs": normalized_kwargs,
+                # Keep the original key for compatibility with 0.0.2 preview code.
+                "arguments": dict(normalized_kwargs),
+            },
             source=source,
         )
 
@@ -118,9 +148,15 @@ class EventContext:
         source: str = "agent",
     ) -> "EventContext":
         normalized_method = method.upper()
+        parsed_url = urlparse(url)
         return cls(
             kind=EventKind.HTTP_REQUEST,
             operation=normalized_method,
-            payload={"url": url, "method": normalized_method},
+            payload={
+                "url": url,
+                "method": normalized_method,
+                "scheme": parsed_url.scheme.lower(),
+                "hostname": (parsed_url.hostname or "").lower(),
+            },
             source=source,
         )

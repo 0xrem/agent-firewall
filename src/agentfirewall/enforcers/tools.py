@@ -16,7 +16,7 @@ class GuardedToolDispatcher:
 
     firewall: AgentFirewall
     tools: dict[str, Callable[..., Any]] = field(default_factory=dict)
-    dispatcher: Callable[[str, dict[str, Any]], Any] | None = None
+    dispatcher: Callable[[str, tuple[Any, ...], dict[str, Any]], Any] | None = None
     source: str = "agent"
 
     def register(self, name: str, tool: Callable[..., Any]) -> None:
@@ -25,21 +25,32 @@ class GuardedToolDispatcher:
     def dispatch(
         self,
         name: str,
-        *,
+        *args: Any,
         arguments: Mapping[str, Any] | None = None,
+        kwargs: Mapping[str, Any] | None = None,
+        **tool_kwargs: Any,
     ) -> Any:
-        normalized_arguments = dict(arguments or {})
+        if arguments is not None and kwargs is not None:
+            raise TypeError("Pass either kwargs or arguments, not both.")
+        if (arguments is not None or kwargs is not None) and tool_kwargs:
+            raise TypeError(
+                "Pass tool keyword arguments either directly or via kwargs/arguments, not both."
+            )
+
+        normalized_kwargs = dict(arguments or kwargs or tool_kwargs)
+        normalized_args = tuple(args)
         event = EventContext.tool_call(
             name,
-            arguments=normalized_arguments,
+            args=normalized_args,
+            kwargs=normalized_kwargs,
             source=self.source,
         )
         self.firewall.enforce(event)
 
         if self.dispatcher is not None:
-            return self.dispatcher(name, normalized_arguments)
+            return self.dispatcher(name, normalized_args, normalized_kwargs)
 
         if name not in self.tools:
             raise KeyError(f"Unknown tool: {name}")
 
-        return self.tools[name](**normalized_arguments)
+        return self.tools[name](*normalized_args, **normalized_kwargs)

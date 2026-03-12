@@ -21,17 +21,19 @@ Think **Fail2ban for AI agents**, but focused on prompts, tool calls, commands, 
 
 ## Status
 
-> Pre-release. This project is not published to PyPI yet, and the public API is still being designed.
+> Pre-alpha. AgentFirewall is published to PyPI, but the `0.0.x` API is still moving.
 
-Today, this repository should be read as an early product proposal, not as a production-ready security system.
+Today, this repository should be read as an early runtime-firewall preview, not as a production-ready security system.
 
 This README is the canonical statement of product scope and positioning.
 
 For phase-by-phase architecture notes, see [docs/strategy/PRODUCT_DIRECTION.md](./docs/strategy/PRODUCT_DIRECTION.md).
 
+For release-by-release highlights, see [CHANGELOG.md](./CHANGELOG.md).
+
 The initial implementation target is an in-process Python SDK for supported agent runtimes.
 
-The current codebase now includes the `0.0.2` preview foundation for that SDK.
+The `main` branch is now shaping the `0.0.3` preview foundation for that SDK.
 
 ## What AgentFirewall Is
 
@@ -59,6 +61,8 @@ AgentFirewall is meant to sit at that boundary as an inline runtime firewall. It
 - block
 - require approval
 - log for audit
+
+On enforced surfaces, `review` should pause execution by default until the runtime handles approval explicitly.
 
 Planned enforcement surfaces include:
 
@@ -105,9 +109,12 @@ The current preview includes:
 
 - a normalized event model for prompt, tool, command, file, and HTTP surfaces
 - a policy engine with `allow`, `block`, `review`, and `log` decisions
+- approval-gated `review` decisions for enforced runtime surfaces
 - config-driven built-in policy packs for `default` and `strict` modes
+- stricter outbound request validation for unsupported schemes and missing hostnames
 - structured audit export for local inspection and regression testing
 - guarded tool, subprocess, file, and HTTP execution helpers
+- a tool-dispatch contract that preserves positional and keyword arguments
 - a runnable demo in `examples/demo_agent.py`
 
 ## Example Threat
@@ -154,6 +161,7 @@ The repository does not yet include:
 
 - framework adapters
 - a stable public API
+- a built-in approval workflow or reviewer integration
 - production hardening for false positives and deployment safety
 - a complete enforcement layer for every runtime surface
 - broader runtime trial data from real agent workflows
@@ -162,10 +170,10 @@ That is why the README describes the intended shape of the product more than a f
 
 ## Roadmap
 
-- Build the in-process Python SDK around a core policy engine
-- Add enforcement hooks for tools, commands, files, and network access
-- Ship the first framework adapters for selected Python agent runtimes
-- Publish an installable pre-release
+- Keep hardening the in-process Python SDK around a core policy engine
+- Tighten approval semantics, outbound request validation, and adapter-ready execution contracts
+- Ship the first framework adapters for selected Python agent runtimes after those contracts are stable
+- Continue shipping PyPI preview releases while the API settles
 - Explore sidecar or proxy deployment patterns after the SDK model is solid
 
 ## Contributing

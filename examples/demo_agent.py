@@ -16,7 +16,7 @@ from agentfirewall.enforcers import (
     GuardedHttpClient,
     GuardedSubprocessRunner,
 )
-from agentfirewall.exceptions import FirewallViolation
+from agentfirewall.exceptions import FirewallViolation, ReviewRequired
 
 
 def fake_runner(command, *, shell=False, **kwargs):
@@ -78,11 +78,17 @@ class DemoAgent:
         self.http.request("https://api.openai.com/v1/models")
 
         print("== allowed tool ==")
-        print(self.tools.dispatch("status", arguments={"message": "ready"}))
+        print(self.tools.dispatch("status", message="ready"))
 
-        print("== blocked tool ==")
+        print("== review-required tool ==")
         try:
-            self.tools.dispatch("shell", arguments={"command": "ls"})
+            self.tools.dispatch("shell", command="ls")
+        except ReviewRequired as exc:
+            print(f"review required: {exc}")
+
+        print("== blocked invalid request ==")
+        try:
+            self.http.request("file:///etc/passwd")
         except FirewallViolation as exc:
             print(f"blocked: {exc}")
 
@@ -115,7 +121,7 @@ def main() -> None:
         config=FirewallConfig(name="demo", log_only=False),
         policy=build_builtin_policy_engine(
             named_policy_pack(
-                "strict",
+                "default",
                 trusted_hosts=("localhost", "127.0.0.1", "api.openai.com"),
             )
         ),

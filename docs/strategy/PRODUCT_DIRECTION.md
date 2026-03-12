@@ -236,7 +236,108 @@ Do not move to the next release focus until the following are true:
 3. The built-in policy pack can be configured without editing source code.
 4. CI reliably catches test, build, and distribution regressions.
 
-Once those conditions are met, `0.0.3` can focus on the first real runtime adapter.
+The `0.0.2` work met that bar, but review of the implementation surfaced three semantic gaps that should be closed before framework adapters become the next focus.
+
+## Current Assessment After 0.0.2
+
+`0.0.2` made the runtime surfaces more uniform, but it still leaves three adapter-risking weaknesses:
+
+1. `review` exists as a decision, but it does not yet behave like a first-class approval gate by default.
+2. Outbound request validation still needs to reject malformed or unsupported URLs before host trust rules run.
+3. The tool-call contract still needs to represent positional and keyword arguments cleanly for real runtime adapters.
+
+That means `0.0.3` should still be a semantics-hardening release, not an adapter release.
+
+## 0.0.3 Milestone
+
+The recommended next milestone is `0.0.3` as a semantic hardening release.
+
+The purpose of `0.0.3` is to make the current runtime firewall behavior trustworthy enough that future framework adapters inherit the right semantics instead of the current edge cases.
+
+Definition of done for `0.0.3`:
+
+1. `review` interrupts execution by default on enforced surfaces unless the runtime explicitly disables that behavior.
+2. Built-in outbound request rules block unsupported schemes and missing hostnames before trust-list evaluation.
+3. Tool-call events and the guarded tool dispatcher support both positional arguments and keyword arguments.
+4. Demo, README, and regression tests all reflect the new review and network semantics.
+5. The public package surface exports the new review-handling primitive cleanly.
+
+## Why 0.0.3 Still Comes Before Adapters
+
+It would be easy to start a LangGraph or OpenAI Agents adapter immediately after `0.0.2`.
+
+That would lock unstable semantics into every adapter.
+
+`0.0.3` should first make these contracts explicit and reliable:
+
+- what `review` means operationally
+- what counts as a valid outbound request
+- how tool inputs are represented across runtimes
+
+Only after those contracts are stable should adapter work become the primary release focus.
+
+## 0.0.3 Work Packages
+
+### 1. Approval-Gated Review Semantics
+
+Make `review` a real execution outcome, not just a label.
+
+Minimum goal:
+
+- raise a dedicated review exception on enforced surfaces by default
+- keep `log-only` mode non-blocking
+- preserve an explicit escape hatch for runtimes that intentionally want passive review behavior
+
+### 2. Hardened Outbound Request Validation
+
+Tighten the outbound-request contract before trust-list checks.
+
+Minimum goal:
+
+- reject unsupported URL schemes
+- reject requests with missing hostnames
+- keep trusted-host evaluation as a second step after basic URL validity
+
+### 3. Adapter-Ready Tool Invocation Contract
+
+Make the tool-call surface match how real runtimes invoke tools.
+
+Minimum goal:
+
+- represent positional arguments separately from keyword arguments
+- keep backward compatibility for the early `arguments={...}` preview API
+- ensure guarded tool dispatch can pass through both forms cleanly
+
+### 4. Demo, Docs, And Regression Alignment
+
+Make the public story match the runtime behavior precisely.
+
+Minimum goal:
+
+- show review-required execution in the demo
+- document that `review` pauses execution on enforced surfaces
+- add regression coverage for review gating and malformed outbound requests
+
+## 0.0.3 Non-Goals
+
+Do not make these part of `0.0.3`:
+
+- broad framework adapter work
+- sidecar or proxy deployment patterns
+- approval UI or centralized review platform work
+- large policy DSL expansion
+- ML-heavy prompt risk scoring
+
+## Exit Criteria Before 0.0.4
+
+Do not move to the next release focus until the following are true:
+
+1. `review` decisions can no longer silently execute in the default enforcers.
+2. Malformed or non-HTTP outbound URLs are blocked by the built-in policy packs.
+3. Tool dispatch can represent positional and keyword arguments without ad hoc runtime-specific workarounds.
+4. Demo, README, and tests all describe the same runtime behavior.
+
+Once those conditions are met, `0.0.4` can focus on the first real runtime adapter.
 
 ## Recommended Build Order
 

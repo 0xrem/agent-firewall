@@ -26,3 +26,21 @@ class FirewallViolation(AgentFirewallError):
             )
 
         super().__init__(message)
+
+
+class ReviewRequired(AgentFirewallError):
+    """Raised when a policy requires approval before execution."""
+
+    def __init__(self, decision: Decision, event: EventContext):
+        self.decision = decision
+        self.event = event
+
+        if decision.reason:
+            message = decision.reason
+        else:
+            message = (
+                f"AgentFirewall requires review for {event.kind.value} during "
+                f"{event.operation or 'execution'}."
+            )
+
+        super().__init__(message)

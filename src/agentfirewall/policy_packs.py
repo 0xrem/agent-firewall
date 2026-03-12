@@ -8,6 +8,7 @@ from .policy import DecisionAction, PolicyEngine, Rule
 from .rules.builtin import (
     BlockDangerousCommandRule,
     BlockDisallowedToolRule,
+    BlockInvalidOutboundRequestRule,
     BlockSensitiveFileAccessRule,
     BlockUntrustedHostRule,
     ReviewPromptInjectionRule,
@@ -39,6 +40,7 @@ class PolicyPackConfig:
         "id_rsa",
         "id_ed25519",
     )
+    allowed_request_schemes: tuple[str, ...] = ("http", "https")
     trusted_hosts: tuple[str, ...] = (
         "localhost",
         "127.0.0.1",
@@ -119,6 +121,9 @@ def builtin_policy_rules(config: PolicyPackConfig) -> list[Rule]:
         ),
         BlockSensitiveFileAccessRule(
             sensitive_path_tokens=config.sensitive_path_tokens,
+        ),
+        BlockInvalidOutboundRequestRule(
+            allowed_schemes=config.allowed_request_schemes,
         ),
         BlockUntrustedHostRule(
             trusted_hosts=config.trusted_hosts,

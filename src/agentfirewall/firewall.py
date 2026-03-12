@@ -8,7 +8,7 @@ from typing import Iterable, TypeVar
 from .audit import AuditEntry, AuditSink, InMemoryAuditSink
 from .config import FirewallConfig
 from .events import EventContext
-from .exceptions import FirewallViolation
+from .exceptions import FirewallViolation, ReviewRequired
 from .policy import Decision, DecisionAction, PolicyEngine, Rule
 T = TypeVar("T")
 
@@ -51,11 +51,13 @@ class AgentFirewall:
         return effective_decision
 
     def enforce(self, event: EventContext) -> Decision:
-        """Evaluate an event and raise on blocked actions when configured."""
+        """Evaluate an event and interrupt execution when configured."""
 
         decision = self.evaluate(event)
         if decision.action == DecisionAction.BLOCK and self.config.raise_on_block:
             raise FirewallViolation(decision, event)
+        if decision.action == DecisionAction.REVIEW and self.config.raise_on_review:
+            raise ReviewRequired(decision, event)
 
         return decision
 

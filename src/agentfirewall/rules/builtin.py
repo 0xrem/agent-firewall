@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from urllib.parse import urlparse
 
 from ..events import EventContext, EventKind
 from ..policy import Decision, Rule
@@ -99,6 +98,41 @@ class BlockSensitiveFileAccessRule:
 
 
 @dataclass(slots=True)
+class BlockInvalidOutboundRequestRule:
+    """Block malformed or unsupported outbound requests."""
+
+    allowed_schemes: tuple[str, ...] = ("http", "https")
+    name: str = "block_invalid_outbound_request"
+
+    def __call__(self, event: EventContext) -> Decision | None:
+        if event.kind != EventKind.HTTP_REQUEST:
+            return None
+
+        scheme = str(event.payload.get("scheme", "")).lower()
+        hostname = str(event.payload.get("hostname", "")).lower()
+
+        normalized_allowed_schemes = tuple(
+            candidate.lower() for candidate in self.allowed_schemes
+        )
+        if scheme not in normalized_allowed_schemes:
+            return Decision.block(
+                reason="Outbound request scheme is not allowed.",
+                metadata={
+                    "scheme": scheme,
+                    "allowed_schemes": normalized_allowed_schemes,
+                },
+            )
+
+        if not hostname:
+            return Decision.block(
+                reason="Outbound request URL must include a hostname.",
+                metadata={"url": str(event.payload.get("url", ""))},
+            )
+
+        return None
+
+
+@dataclass(slots=True)
 class BlockUntrustedHostRule:
     """Block outbound requests that do not match a trust list."""
 
@@ -109,8 +143,7 @@ class BlockUntrustedHostRule:
         if event.kind != EventKind.HTTP_REQUEST:
             return None
 
-        url = str(event.payload.get("url", ""))
-        hostname = (urlparse(url).hostname or "").lower()
+        hostname = str(event.payload.get("hostname", "")).lower()
         if not hostname or not self.trusted_hosts:
             return None
 
@@ -171,6 +204,7 @@ class BlockDisallowedToolRule:
 
 def default_runtime_rules(
     *,
+    allowed_request_schemes: tuple[str, ...] = ("http", "https"),
     trusted_hosts: tuple[str, ...] = ("localhost", "127.0.0.1", "api.openai.com"),
     reviewed_tool_names: tuple[str, ...] = (
         "shell",
@@ -188,5 +222,8 @@ def default_runtime_rules(
         BlockDisallowedToolRule(blocked_tool_names=blocked_tool_names),
         BlockDangerousCommandRule(),
         BlockSensitiveFileAccessRule(),
+        BlockInvalidOutboundRequestRule(
+            allowed_schemes=allowed_request_schemes,
+        ),
         BlockUntrustedHostRule(trusted_hosts=trusted_hosts),
     ]

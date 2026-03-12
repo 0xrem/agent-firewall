@@ -38,12 +38,32 @@
     "expected_action": "block"
   },
   {
+    "name": "invalid_scheme_block",
+    "policy_pack": "default",
+    "event": {
+      "kind": "http_request",
+      "url": "file:///etc/passwd",
+      "method": "GET"
+    },
+    "expected_action": "block"
+  },
+  {
+    "name": "missing_hostname_block",
+    "policy_pack": "default",
+    "event": {
+      "kind": "http_request",
+      "url": "https:///missing-host",
+      "method": "GET"
+    },
+    "expected_action": "block"
+  },
+  {
     "name": "default_shell_tool_review",
     "policy_pack": "default",
     "event": {
       "kind": "tool_call",
       "name": "shell",
-      "arguments": {
+      "kwargs": {
         "command": "ls"
       }
     },
@@ -55,7 +75,7 @@
     "event": {
       "kind": "tool_call",
       "name": "shell",
-      "arguments": {
+      "kwargs": {
         "command": "ls"
       }
     },
