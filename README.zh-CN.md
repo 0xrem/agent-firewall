@@ -31,6 +31,8 @@ AgentFirewall 是一个处于早期阶段的 Python 项目，目标是在 AI Age
 
 当前最初的实现目标，是一个面向已支持 Agent runtime 的 in-process Python SDK。
 
+当前代码仓库已经具备这个 SDK 的第一版 `0.0.1` 预览地基。
+
 ## AgentFirewall 是什么
 
 现代 AI Agent 可以：
@@ -95,6 +97,17 @@ agent = firewall.wrap_agent(agent)
 
 顶层的 `protect(agent)` 可以保留为简写 helper，但不应该成为这个产品的主要心智模型。
 
+## 当前预览版包含什么
+
+当前预览版已经包含：
+
+- 一个覆盖 prompt、tool、command、file、HTTP 的统一事件模型
+- 一个支持 `allow`、`block`、`review`、`log` 的策略决策引擎
+- 一个适合本地开发和测试的内存审计 sink
+- 一组针对 prompt、命令、文件和出站域名的内建规则
+- 对 subprocess、文件访问和 HTTP 的最低限度 guarded execution helpers
+- 一个可运行的 `examples/demo_agent.py` 示例
+
 ## 威胁示例
 
 一个恶意 prompt 可能是：
@@ -137,11 +150,11 @@ AgentFirewall 首先面向 Python 生态中的 Agent 运行时，例如：
 
 这个仓库目前还没有：
 
-- 真正可用的 enforcement hooks
 - 框架适配器
 - 稳定的公开 API
 - 可投入生产的策略包
-- 可运行的集成示例
+- 面向误报控制和部署安全的生产级打磨
+- 覆盖所有 runtime surface 的完整 enforcement layer
 
 所以现在的 README 主要描述的是产品的目标形态，而不是最终定稿的安装说明。
 

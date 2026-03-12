@@ -106,6 +106,73 @@ Explore sidecar, proxy, or centrally managed deployment patterns after the SDK m
 
 This should come later, not first.
 
+## 0.0.1 Milestone
+
+The recommended first milestone is `0.0.1` as an internal preview, not a broad public maturity claim.
+
+The goal is not to ship a large architecture skeleton. The goal is to ship one narrow but real end-to-end path that can evaluate and block runtime behavior.
+
+Definition of done for `0.0.1`:
+
+1. Stable event, decision, policy, and audit types.
+2. A small built-in rule set for obvious runtime risks.
+3. At least two real enforcement surfaces.
+4. A runnable demo that shows allowed and blocked behavior.
+5. Repeatable tests for attack cases and expected decisions.
+
+## Recommended Build Order
+
+To keep the first version robust and fast to iterate on, development should happen in this order:
+
+1. Stabilize the normalized runtime event model.
+2. Stabilize the decision and policy interfaces.
+3. Add audit recording for every evaluated event.
+4. Add one enforcement surface at a time.
+5. Add built-in rules only after the event shape is clear.
+6. Add framework adapters only after low-level enforcement is proven.
+
+This keeps the foundation small while still making the system usable early.
+
+## What To Build First
+
+For the first useful preview, prioritize:
+
+- command execution controls
+- sensitive file access controls
+- outbound HTTP controls
+- prompt review rules for obvious instruction override attempts
+
+Do not start with:
+
+- sidecar or proxy deployments
+- static skill scanning
+- a large policy DSL
+- broad multi-framework support
+- full platform or UI concerns
+
+## Testing Strategy
+
+Early testing should use four layers:
+
+1. Unit tests for rules and policy decisions.
+2. Integration tests for guarded execution surfaces.
+3. Golden attack cases for prompts, commands, files, and outbound requests.
+4. Real local trial runs in `log-only` mode before default blocking.
+
+`log-only` should be the default validation approach for real agent traffic until false positives are understood.
+
+## Development Cadence
+
+The recommended cadence is:
+
+1. Build a narrow capability.
+2. Add tests for both benign and malicious cases.
+3. Run it in `log-only` mode against a real or demo agent.
+4. Tighten rules only after observed results are understood.
+5. Expand to the next execution surface.
+
+This is more robust than trying to design the entire runtime firewall in advance.
+
 ## Non-Goals For Early Versions
 
 - replacing sandboxing

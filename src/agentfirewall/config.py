@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .models import DecisionAction
+from .policy import DecisionAction
 
 
 @dataclass(slots=True)
@@ -14,3 +14,5 @@ class FirewallConfig:
     name: str = "default"
     default_action: DecisionAction = DecisionAction.ALLOW
     audit_enabled: bool = True
+    log_only: bool = False
+    raise_on_block: bool = True

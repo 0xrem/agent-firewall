@@ -31,6 +31,8 @@ For phase-by-phase architecture notes, see [docs/strategy/PRODUCT_DIRECTION.md](
 
 The initial implementation target is an in-process Python SDK for supported agent runtimes.
 
+The current codebase now includes the first `0.0.1` preview foundation for that SDK.
+
 ## What AgentFirewall Is
 
 Modern AI agents can:
@@ -97,6 +99,17 @@ For custom runtimes, AgentFirewall should also support lower-level integration a
 
 The top-level `protect(agent)` helper may remain as a shorthand, but it should not be the main mental model.
 
+## Current Preview
+
+The current preview includes:
+
+- a normalized event model for prompt, tool, command, file, and HTTP surfaces
+- a policy engine with `allow`, `block`, `review`, and `log` decisions
+- an in-memory audit sink for local development and tests
+- built-in rules for obvious prompt, command, file, and outbound host risks
+- guarded subprocess, file, and HTTP execution helpers
+- a runnable demo in `examples/demo_agent.py`
+
 ## Example Threat
 
 Example malicious prompt:
@@ -139,11 +152,11 @@ AgentFirewall is initially aimed at Python agent runtimes such as:
 
 The repository does not yet include:
 
-- real enforcement hooks
 - framework adapters
 - a stable public API
 - production-ready policy packs
-- runnable integration examples
+- production hardening for false positives and deployment safety
+- a complete enforcement layer for every runtime surface
 
 That is why the README describes the intended shape of the product more than a finalized installation flow.
 
