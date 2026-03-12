@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any
 
 from .events import EventContext
+from .serialization import to_jsonable
 
 
 class DecisionAction(str, Enum):
@@ -35,6 +36,14 @@ class Decision:
     @property
     def is_blocking(self) -> bool:
         return self.action == DecisionAction.BLOCK
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "action": self.action.value,
+            "reason": self.reason,
+            "rule": self.rule,
+            "metadata": to_jsonable(self.metadata),
+        }
 
     @classmethod
     def allow(

@@ -120,6 +120,124 @@ Definition of done for `0.0.1`:
 4. A runnable demo that shows allowed and blocked behavior.
 5. Repeatable tests for attack cases and expected decisions.
 
+## Current Assessment After 0.0.1
+
+`0.0.1` proves the product direction, but it is still shallow in three important ways:
+
+1. It has low-level execution helpers, but not yet a strong adapter boundary for real agent runtimes.
+2. It has built-in rules, but not yet a robust configuration and policy-pack model.
+3. It has local audit recording, but not yet the observability and regression infrastructure needed for steady iteration.
+
+This means the next version should not chase breadth. It should make the current path operationally stronger.
+
+## 0.0.2 Milestone
+
+The recommended next milestone is `0.0.2` as an operational hardening release.
+
+The purpose of `0.0.2` is to make the first runtime path more reliable, configurable, and testable without changing the product definition.
+
+Definition of done for `0.0.2`:
+
+1. A guarded tool-dispatch surface alongside command, file, and HTTP enforcement.
+2. Config-driven built-in policy packs instead of only hard-coded rule values.
+3. Structured audit export suitable for local inspection and regression testing.
+4. A log-only workflow that is usable for real agent trial runs.
+5. CI checks that run tests, build the package, and validate distributions.
+
+## Why 0.0.2 Should Stay Narrow
+
+The temptation after `0.0.1` is to jump to framework-specific integrations or broader deployment models.
+
+That would be premature.
+
+The next version should still focus on the common runtime surfaces that every future adapter will depend on:
+
+- tool dispatch
+- command execution
+- sensitive file access
+- outbound HTTP
+- audit and decision flow
+
+If those interfaces are not stable, every framework adapter will inherit churn.
+
+## 0.0.2 Work Packages
+
+### 1. Guarded Tool Dispatch
+
+Add a first-class tool execution wrapper and corresponding event shape.
+
+Minimum goal:
+
+- normalize tool name and arguments
+- evaluate before tool execution
+- audit the decision
+- preserve the ability to run in `log-only`
+
+### 2. Config-Driven Policy Packs
+
+Move built-in rules toward explicit configuration instead of fixed values inside rule classes.
+
+Minimum goal:
+
+- trusted host lists from config
+- sensitive path patterns from config
+- dangerous command patterns from config
+- named policy packs such as `default` and `strict`
+
+### 3. Structured Audit Output
+
+Upgrade local audit support so decisions can be inspected and compared across runs.
+
+Minimum goal:
+
+- serializable audit entries
+- JSON-friendly event and decision output
+- simple export or snapshot helpers
+
+### 4. Regression Fixtures
+
+Create a small attack-fixture suite that acts as a behavioral contract for the runtime firewall.
+
+Minimum goal:
+
+- prompt cases
+- command cases
+- file cases
+- HTTP cases
+- expected decision for each case
+
+### 5. CI And Release Hygiene
+
+Lock in fast feedback for every change.
+
+Minimum goal:
+
+- run tests on every push
+- build sdist and wheel in CI
+- run `twine check`
+- fail fast on packaging regressions
+
+## 0.0.2 Non-Goals
+
+Do not make these part of `0.0.2`:
+
+- sidecar or proxy deployments
+- broad multi-framework support
+- skill trust scoring or static package analysis
+- heavy ML-based prompt classification
+- large policy DSL design
+
+## Exit Criteria Before 0.0.3
+
+Do not move to the next release focus until the following are true:
+
+1. Tool, command, file, and HTTP surfaces all use the same event and decision model.
+2. At least one real local trial run works in `log-only` mode with understandable audit output.
+3. The built-in policy pack can be configured without editing source code.
+4. CI reliably catches test, build, and distribution regressions.
+
+Once those conditions are met, `0.0.3` can focus on the first real runtime adapter.
+
 ## Recommended Build Order
 
 To keep the first version robust and fast to iterate on, development should happen in this order:

@@ -1,0 +1,2 @@
+include examples/demo_agent.py
+recursive-include tests/fixtures *.json

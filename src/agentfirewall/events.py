@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Iterable
 
+from .serialization import to_jsonable
+
 
 class EventKind(str, Enum):
     """Runtime surfaces that the firewall can evaluate."""
@@ -37,6 +39,15 @@ class EventContext:
     def __post_init__(self) -> None:
         if isinstance(self.kind, str):
             self.kind = EventKind(self.kind)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "kind": self.kind.value,
+            "operation": self.operation,
+            "payload": to_jsonable(self.payload),
+            "source": self.source,
+            "tags": list(self.tags),
+        }
 
     @classmethod
     def prompt(cls, text: str, *, source: str = "agent") -> "EventContext":

@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
-from agentfirewall import AgentFirewall, EventContext, FirewallConfig, PolicyEngine
+from agentfirewall import (
+    AgentFirewall,
+    EventContext,
+    FirewallConfig,
+    GuardedToolDispatcher,
+    InMemoryAuditSink,
+    build_builtin_policy_engine,
+    named_policy_pack,
+)
 from agentfirewall.enforcers import (
     GuardedFileAccess,
     GuardedHttpClient,
     GuardedSubprocessRunner,
 )
 from agentfirewall.exceptions import FirewallViolation
-from agentfirewall.rules import default_runtime_rules
 
 
 def fake_runner(command, *, shell=False, **kwargs):
@@ -27,6 +34,16 @@ def fake_open(path, mode="r", **kwargs):
     return {"path": path, "mode": mode, "kwargs": kwargs}
 
 
+def fake_status_tool(message):
+    print(f"[tool] status message={message!r}")
+    return f"status:{message}"
+
+
+def fake_shell_tool(command):
+    print(f"[tool] shell command={command!r}")
+    return f"shell:{command}"
+
+
 class DemoAgent:
     def __init__(self, firewall: AgentFirewall):
         self.firewall = firewall
@@ -42,6 +59,9 @@ class DemoAgent:
             firewall=firewall,
             opener=fake_open,
         )
+        self.tools = GuardedToolDispatcher(firewall=firewall)
+        self.tools.register("status", fake_status_tool)
+        self.tools.register("shell", fake_shell_tool)
 
     def summarize(self, prompt: str) -> str:
         decision = self.firewall.evaluate(EventContext.prompt(prompt))
@@ -56,6 +76,15 @@ class DemoAgent:
 
         print("== allowed request ==")
         self.http.request("https://api.openai.com/v1/models")
+
+        print("== allowed tool ==")
+        print(self.tools.dispatch("status", arguments={"message": "ready"}))
+
+        print("== blocked tool ==")
+        try:
+            self.tools.dispatch("shell", arguments={"command": "ls"})
+        except FirewallViolation as exc:
+            print(f"blocked: {exc}")
 
         print("== blocked request ==")
         try:
@@ -75,15 +104,22 @@ class DemoAgent:
         except FirewallViolation as exc:
             print(f"blocked: {exc}")
 
+        if isinstance(self.firewall.audit_sink, InMemoryAuditSink):
+            print("== audit snapshot ==")
+            print(self.firewall.audit_sink.to_json(indent=2))
+
 
 def main() -> None:
+    audit_sink = InMemoryAuditSink()
     firewall = AgentFirewall(
         config=FirewallConfig(name="demo", log_only=False),
-        policy=PolicyEngine(
-            rules=default_runtime_rules(
-                trusted_hosts=("localhost", "127.0.0.1", "api.openai.com")
+        policy=build_builtin_policy_engine(
+            named_policy_pack(
+                "strict",
+                trusted_hosts=("localhost", "127.0.0.1", "api.openai.com"),
             )
         ),
+        audit_sink=audit_sink,
     )
     agent = firewall.wrap_agent(DemoAgent(firewall))
     agent.run()
