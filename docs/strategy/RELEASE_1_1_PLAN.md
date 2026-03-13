@@ -227,6 +227,7 @@ Ship:
 - reusable test helpers or fixtures for adapter conformance
 - required trace assertions
 - capability-driven test expectations
+- registry-backed eval evidence entrypoints for official adapters
 
 Definition of done:
 

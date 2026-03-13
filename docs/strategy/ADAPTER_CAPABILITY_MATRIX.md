@@ -10,7 +10,7 @@ Its job is to answer one question clearly:
 
 What does an adapter actually guarantee today?
 
-The source of truth for official adapter rows lives in code through `RuntimeAdapterSpec` and `export_official_adapter_matrix()`.
+The source of truth for official adapter rows and registry-backed eval evidence lives in code through `RuntimeAdapterSpec`, `export_official_adapter_matrix()`, and `export_official_adapter_inventory()`.
 
 ## Official Support-Level Vocabulary
 

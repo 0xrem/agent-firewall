@@ -6,11 +6,16 @@ from agentfirewall.integrations import (
     AdapterSupportLevel,
     OFFICIAL_ADAPTER_CAPABILITY_ORDER,
     capability_support_map,
+    export_official_adapter_inventory,
+    get_official_adapter,
     export_official_adapter_matrix,
     get_official_adapter_spec,
     get_langgraph_adapter_spec,
+    list_official_adapters,
     list_official_adapter_specs,
+    run_official_adapter_eval_suite,
     validate_eval_summary,
+    validate_official_adapter_conformance,
 )
 from agentfirewall.runtime_context import (
     REQUIRED_RUNTIME_CONTEXT_FIELDS,
@@ -31,6 +36,18 @@ class AdapterContractTests(unittest.TestCase):
 
         self.assertEqual(tuple(spec.name for spec in specs), ("langgraph",))
         self.assertEqual(get_official_adapter_spec("langgraph"), get_langgraph_adapter_spec())
+        self.assertEqual(tuple(adapter.name for adapter in list_official_adapters()), ("langgraph",))
+
+    def test_official_adapter_inventory_exports_eval_evidence_entrypoint(self) -> None:
+        inventory = export_official_adapter_inventory()
+
+        self.assertEqual(len(inventory), 1)
+        self.assertEqual(inventory[0]["name"], "langgraph")
+        self.assertTrue(inventory[0]["has_eval_suite"])
+        self.assertEqual(
+            inventory[0]["eval_runner"],
+            "agentfirewall.evals:run_langgraph_eval_suite",
+        )
 
     def test_langgraph_adapter_declares_supported_capabilities(self) -> None:
         spec = get_langgraph_adapter_spec()
@@ -120,6 +137,17 @@ class AdapterContractTests(unittest.TestCase):
 
 @unittest.skipUnless(LANGGRAPH_AVAILABLE, "LangGraph optional dependencies are not installed.")
 class LangGraphConformanceTests(unittest.TestCase):
+    def test_official_adapter_registry_can_run_langgraph_eval_suite(self) -> None:
+        summary = run_official_adapter_eval_suite("langgraph")
+
+        self.assertEqual(summary.failed, 0)
+        self.assertEqual(summary.total, 19)
+
+    def test_official_adapter_registry_can_validate_langgraph_conformance(self) -> None:
+        report = validate_official_adapter_conformance("langgraph")
+
+        self.assertTrue(report.ok, msg=report.to_dict())
+
     def test_langgraph_eval_suite_still_passes_under_adapter_contract(self) -> None:
         from agentfirewall.evals import run_langgraph_eval_suite
 
@@ -135,6 +163,12 @@ class LangGraphConformanceTests(unittest.TestCase):
         report = validate_eval_summary(run_langgraph_eval_suite().to_dict(), spec)
 
         self.assertTrue(report.ok, msg=report.to_dict())
+
+    def test_official_adapter_record_matches_langgraph_contract(self) -> None:
+        adapter = get_official_adapter("langgraph")
+
+        self.assertEqual(adapter.spec, get_langgraph_adapter_spec())
+        self.assertTrue(adapter.has_eval_suite())
 
     def test_langgraph_side_effect_traces_include_required_runtime_context(self) -> None:
         from agentfirewall.evals import run_langgraph_eval_suite
