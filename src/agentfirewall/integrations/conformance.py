@@ -6,7 +6,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..runtime_context import missing_runtime_context_fields
+from ..runtime_context import (
+    SIDE_EFFECT_RUNTIME_EVENT_KINDS,
+    missing_runtime_context_fields,
+)
 from .contracts import AdapterCapability, RuntimeAdapterSpec
 
 REQUIRED_AUDIT_SUMMARY_KEYS: tuple[str, ...] = (
@@ -162,7 +165,7 @@ def _validate_runtime_context(
         return
 
     for result, trace in _iter_result_traces(payload):
-        if trace.get("event_kind") not in {"command", "file_access", "http_request"}:
+        if trace.get("event_kind") not in SIDE_EFFECT_RUNTIME_EVENT_KINDS:
             continue
         missing = missing_runtime_context_fields(
             trace.get("runtime_context"),

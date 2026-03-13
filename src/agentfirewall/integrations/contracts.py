@@ -32,6 +32,19 @@ class AdapterCapability(str, Enum):
     LOG_ONLY_SEMANTICS = "log_only_semantics"
 
 
+OFFICIAL_ADAPTER_CAPABILITY_ORDER: tuple[AdapterCapability, ...] = (
+    AdapterCapability.PROMPT_INSPECTION,
+    AdapterCapability.TOOL_CALL_INTERCEPTION,
+    AdapterCapability.SHELL_ENFORCEMENT,
+    AdapterCapability.FILE_READ_ENFORCEMENT,
+    AdapterCapability.FILE_WRITE_ENFORCEMENT,
+    AdapterCapability.HTTP_ENFORCEMENT,
+    AdapterCapability.RUNTIME_CONTEXT_CORRELATION,
+    AdapterCapability.REVIEW_SEMANTICS,
+    AdapterCapability.LOG_ONLY_SEMANTICS,
+)
+
+
 def capability_set(*capabilities: AdapterCapability) -> frozenset[AdapterCapability]:
     """Return a frozen capability set for adapter declarations."""
 
@@ -88,3 +101,37 @@ def missing_declared_capabilities(
         if not spec.supports(resolved):
             missing[check_name] = resolved.value
     return missing
+
+
+def capability_support_map(
+    spec: RuntimeAdapterSpec,
+    *,
+    capability_order: tuple[AdapterCapability, ...] = OFFICIAL_ADAPTER_CAPABILITY_ORDER,
+) -> dict[str, str]:
+    """Return `supported`/`not_supported` values for the standard capability matrix."""
+
+    return {
+        capability.value: (
+            "supported"
+            if spec.supports(capability)
+            else "not_supported"
+        )
+        for capability in capability_order
+    }
+
+
+def capability_matrix_row(
+    spec: RuntimeAdapterSpec,
+    *,
+    capability_order: tuple[AdapterCapability, ...] = OFFICIAL_ADAPTER_CAPABILITY_ORDER,
+) -> dict[str, object]:
+    """Return a machine-readable capability-matrix row for one adapter."""
+
+    row: dict[str, object] = {
+        "name": spec.name,
+        "module": spec.module,
+        "support_level": spec.support_level.value,
+        "notes": spec.notes,
+    }
+    row.update(capability_support_map(spec, capability_order=capability_order))
+    return row

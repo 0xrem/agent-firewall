@@ -3,7 +3,10 @@
 from .contracts import (
     AdapterCapability,
     AdapterSupportLevel,
+    OFFICIAL_ADAPTER_CAPABILITY_ORDER,
     RuntimeAdapterSpec,
+    capability_matrix_row,
+    capability_support_map,
 )
 from .conformance import (
     ConformanceIssue,
@@ -19,6 +22,11 @@ from .langgraph import (
     create_guarded_langgraph_shell_tool,
     get_langgraph_adapter_spec,
 )
+from .registry import (
+    export_official_adapter_matrix,
+    get_official_adapter_spec,
+    list_official_adapter_specs,
+)
 
 __all__ = [
     "AdapterCapability",
@@ -26,12 +34,18 @@ __all__ = [
     "ConformanceIssue",
     "ConformanceReport",
     "LangGraphFirewallMiddleware",
+    "OFFICIAL_ADAPTER_CAPABILITY_ORDER",
     "RuntimeAdapterSpec",
+    "capability_matrix_row",
+    "capability_support_map",
     "create_firewalled_langgraph_agent",
     "create_guarded_langgraph_file_reader_tool",
     "create_guarded_langgraph_file_writer_tool",
     "create_guarded_langgraph_http_tool",
     "create_guarded_langgraph_shell_tool",
+    "export_official_adapter_matrix",
+    "get_official_adapter_spec",
     "get_langgraph_adapter_spec",
+    "list_official_adapter_specs",
     "validate_eval_summary",
 ]

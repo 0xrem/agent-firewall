@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +28,21 @@ class AuditEntry:
             "created_at": self.created_at.isoformat(),
             "event": self.event.to_dict(),
             "decision": self.decision.to_dict(),
+        }
+
+    def to_trace_dict(self) -> dict[str, object]:
+        """Return the compact trace shape used by evals and trial runs."""
+
+        return {
+            "event_kind": self.event.kind.value,
+            "event_operation": self.event.operation,
+            "action": self.decision.action.value,
+            "rule": self.decision.rule,
+            "source": self.event.source,
+            "decision_metadata": dict(self.decision.metadata),
+            "runtime_context": dict(
+                self.event.payload.get("runtime_context", {})
+            ),
         }
 
 
@@ -74,6 +89,9 @@ class InMemoryAuditSink:
 
     def export(self) -> list[dict[str, object]]:
         return [entry.to_dict() for entry in self.entries]
+
+    def export_trace(self) -> list[dict[str, object]]:
+        return [entry.to_trace_dict() for entry in self.entries]
 
     def summary(self) -> AuditSummary:
         action_counts: dict[str, int] = {}
@@ -188,3 +206,9 @@ class JsonLinesAuditSink:
         with target.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry.to_dict(), sort_keys=True))
             handle.write("\n")
+
+
+def export_audit_trace(entries: Iterable[AuditEntry]) -> list[dict[str, object]]:
+    """Return the compact trace representation for a sequence of audit entries."""
+
+    return [entry.to_trace_dict() for entry in entries]

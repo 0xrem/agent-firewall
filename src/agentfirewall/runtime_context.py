@@ -22,6 +22,12 @@ REQUIRED_RUNTIME_CONTEXT_FIELDS: tuple[str, ...] = (
     "tool_event_source",
 )
 
+SIDE_EFFECT_RUNTIME_EVENT_KINDS: tuple[str, ...] = (
+    "command",
+    "file_access",
+    "http_request",
+)
+
 
 def current_runtime_context() -> dict[str, Any]:
     """Return the current correlated runtime context, if any."""
@@ -46,6 +52,54 @@ def missing_runtime_context_fields(
         if value in (None, "", (), [], {}):
             missing.append(field)
     return tuple(missing)
+
+
+def build_tool_runtime_context(
+    *,
+    runtime: str,
+    tool_name: str | None = None,
+    tool_call_id: str | None = None,
+    tool_event_source: str | None = None,
+    **metadata: Any,
+) -> dict[str, Any]:
+    """Build a normalized runtime-context payload for a tool-triggered flow."""
+
+    context: dict[str, Any] = {}
+    declared = {
+        "runtime": runtime,
+        "tool_name": tool_name,
+        "tool_call_id": tool_call_id,
+        "tool_event_source": tool_event_source,
+    }
+    declared.update(metadata)
+
+    for key, value in declared.items():
+        if value in (None, "", (), [], {}):
+            continue
+        context[key] = value
+    return context
+
+
+@contextmanager
+def tool_runtime_context(
+    *,
+    runtime: str,
+    tool_name: str | None = None,
+    tool_call_id: str | None = None,
+    tool_event_source: str | None = None,
+    **metadata: Any,
+) -> Iterator[None]:
+    """Apply normalized runtime-context metadata for a tool-triggered flow."""
+
+    context = build_tool_runtime_context(
+        runtime=runtime,
+        tool_name=tool_name,
+        tool_call_id=tool_call_id,
+        tool_event_source=tool_event_source,
+        **metadata,
+    )
+    with runtime_event_context(**context):
+        yield
 
 
 @contextmanager

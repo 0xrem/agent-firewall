@@ -20,7 +20,7 @@ from ..firewall import AgentFirewall, create_firewall
 from ..policy_packs import (
     PolicyPackConfig,
 )
-from ..runtime_context import attach_runtime_context, runtime_event_context
+from ..runtime_context import attach_runtime_context, tool_runtime_context
 from .contracts import (
     AdapterCapability,
     AdapterSupportLevel,
@@ -287,7 +287,7 @@ class LangGraphFirewallMiddleware(AgentMiddleware):
         if not tool_name and tool_call_id is None:
             return nullcontext()
 
-        return runtime_event_context(
+        return tool_runtime_context(
             runtime=self.source,
             tool_name=tool_name,
             tool_call_id=(

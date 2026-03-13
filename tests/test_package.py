@@ -22,6 +22,7 @@ from agentfirewall.approval import (
     timeout_all,
 )
 from agentfirewall.audit import JsonLinesAuditSink
+from agentfirewall.audit import export_audit_trace
 from agentfirewall.enforcers import (
     GuardedFileAccess,
     GuardedHttpClient,
@@ -264,6 +265,21 @@ class PackageTests(unittest.TestCase):
 
         self.assertEqual(len(audit_sink.entries), 1)
         self.assertEqual(audit_sink.entries[0].decision.action, DecisionAction.ALLOW)
+
+    def test_export_audit_trace_uses_compact_contract_shape(self) -> None:
+        audit_sink = InMemoryAuditSink()
+        firewall = AgentFirewall(audit_sink=audit_sink)
+
+        firewall.evaluate(EventContext.prompt("Check status."))
+
+        trace = export_audit_trace(audit_sink.entries)
+
+        self.assertEqual(len(trace), 1)
+        self.assertEqual(trace[0]["event_kind"], "prompt")
+        self.assertEqual(trace[0]["event_operation"], "inspect")
+        self.assertEqual(trace[0]["action"], "allow")
+        self.assertIn("decision_metadata", trace[0])
+        self.assertIn("runtime_context", trace[0])
 
     def test_audit_export_is_json_friendly(self) -> None:
         audit_sink = InMemoryAuditSink()

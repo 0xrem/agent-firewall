@@ -10,14 +10,25 @@ Its job is to answer one question clearly:
 
 What does an adapter actually guarantee today?
 
-## Status Vocabulary
+The source of truth for official adapter rows lives in code through `RuntimeAdapterSpec` and `export_official_adapter_matrix()`.
+
+## Official Support-Level Vocabulary
 
 - `supported`
   Part of the current official supported path.
-- `planned`
-  Intended for a future official adapter, but not implemented yet.
+- `experimental`
+  Implemented, but not yet part of the stable supported path.
+- `reference_only`
+  Intended as a reference implementation or internal proving path, not a support promise.
+
+## Capability Cell Vocabulary
+
+- `supported`
+  The adapter declares this capability today.
 - `not_supported`
-  Not available for that adapter.
+  The adapter does not declare this capability today.
+- `planned`
+  Roadmap direction only for a non-official future path.
 
 ## Capability Definitions
 
@@ -40,20 +51,25 @@ What does an adapter actually guarantee today?
 - `log_only_semantics`
   The adapter preserves core `log-only` behavior without redefining decision semantics.
 
-## Current Matrix
+## Current Official Matrix
 
 | Adapter | Status | Prompt | Tool Call | Shell | File Read | File Write | HTTP | Runtime Context | Review | Log Only |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `agentfirewall.langgraph` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` |
-| Second official adapter | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` |
-| MCP client path | `planned` | `planned` | `planned` | `not_supported` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` |
-| MCP server path | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` |
 
 ## Current `1.0.0` Interpretation
 
 For `1.0.0`, only the `agentfirewall.langgraph` row is part of the supported contract.
 
-The other rows describe planning direction only. They are not product promises yet.
+## Planning Direction Only
+
+These rows are roadmap guidance, not an adapter contract:
+
+| Future Path | Status | Prompt | Tool Call | Shell | File Read | File Write | HTTP | Runtime Context | Review | Log Only |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Second official adapter | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` |
+| MCP client path | `planned` | `planned` | `planned` | `not_supported` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` |
+| MCP server path | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` |
 
 ## `1.1` Expectation
 

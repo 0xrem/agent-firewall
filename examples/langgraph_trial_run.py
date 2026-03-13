@@ -16,6 +16,7 @@ from agentfirewall import (
     create_firewall,
 )
 from agentfirewall.approval import StaticApprovalHandler
+from agentfirewall.audit import export_audit_trace
 from agentfirewall.exceptions import FirewallViolation
 from agentfirewall.langgraph import (
     create_agent,
@@ -159,20 +160,7 @@ def _scenario_result(scenario: TrialScenario) -> dict[str, object]:
         "detail": detail,
         "final_message": final_message,
         "audit_summary": audit_sink.summary().to_dict(),
-        "audit_trace": [
-            {
-                "event_kind": entry.event.kind.value,
-                "event_operation": entry.event.operation,
-                "action": entry.decision.action.value,
-                "rule": entry.decision.rule,
-                "source": entry.event.source,
-                "decision_metadata": dict(entry.decision.metadata),
-                "runtime_context": dict(
-                    entry.event.payload.get("runtime_context", {})
-                ),
-            }
-            for entry in audit_sink.entries
-        ],
+        "audit_trace": export_audit_trace(audit_sink.entries),
     }
 
 

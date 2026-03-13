@@ -4,11 +4,18 @@ import unittest
 from agentfirewall.integrations import (
     AdapterCapability,
     AdapterSupportLevel,
+    OFFICIAL_ADAPTER_CAPABILITY_ORDER,
+    capability_support_map,
+    export_official_adapter_matrix,
+    get_official_adapter_spec,
     get_langgraph_adapter_spec,
+    list_official_adapter_specs,
     validate_eval_summary,
 )
 from agentfirewall.runtime_context import (
     REQUIRED_RUNTIME_CONTEXT_FIELDS,
+    SIDE_EFFECT_RUNTIME_EVENT_KINDS,
+    build_tool_runtime_context,
     missing_runtime_context_fields,
 )
 
@@ -19,6 +26,12 @@ LANGGRAPH_AVAILABLE = bool(importlib.util.find_spec("langchain")) and bool(
 
 
 class AdapterContractTests(unittest.TestCase):
+    def test_official_adapter_registry_lists_langgraph(self) -> None:
+        specs = list_official_adapter_specs()
+
+        self.assertEqual(tuple(spec.name for spec in specs), ("langgraph",))
+        self.assertEqual(get_official_adapter_spec("langgraph"), get_langgraph_adapter_spec())
+
     def test_langgraph_adapter_declares_supported_capabilities(self) -> None:
         spec = get_langgraph_adapter_spec()
 
@@ -39,6 +52,27 @@ class AdapterContractTests(unittest.TestCase):
         self.assertTrue(spec.supports(AdapterCapability.REVIEW_SEMANTICS))
         self.assertTrue(spec.supports(AdapterCapability.LOG_ONLY_SEMANTICS))
 
+    def test_capability_support_map_tracks_standard_matrix_order(self) -> None:
+        spec = get_langgraph_adapter_spec()
+
+        support_map = capability_support_map(spec)
+
+        self.assertEqual(
+            tuple(support_map.keys()),
+            tuple(capability.value for capability in OFFICIAL_ADAPTER_CAPABILITY_ORDER),
+        )
+        self.assertTrue(all(value == "supported" for value in support_map.values()))
+
+    def test_export_official_adapter_matrix_returns_machine_readable_rows(self) -> None:
+        matrix = export_official_adapter_matrix()
+
+        self.assertEqual(len(matrix), 1)
+        self.assertEqual(matrix[0]["name"], "langgraph")
+        self.assertEqual(matrix[0]["module"], "agentfirewall.langgraph")
+        self.assertEqual(matrix[0]["support_level"], "supported")
+        self.assertEqual(matrix[0]["prompt_inspection"], "supported")
+        self.assertEqual(matrix[0]["log_only_semantics"], "supported")
+
     def test_missing_runtime_context_fields_reports_contract_gaps(self) -> None:
         self.assertEqual(
             missing_runtime_context_fields({"runtime": "langgraph"}),
@@ -54,6 +88,33 @@ class AdapterContractTests(unittest.TestCase):
                 }
             ),
             (),
+        )
+
+    def test_build_tool_runtime_context_normalizes_required_fields(self) -> None:
+        context = build_tool_runtime_context(
+            runtime="langgraph",
+            tool_name="shell",
+            tool_call_id="call_123",
+            tool_event_source="langgraph.tool",
+            trace_id="trace_1",
+            empty_field="",
+        )
+
+        self.assertEqual(
+            context,
+            {
+                "runtime": "langgraph",
+                "tool_name": "shell",
+                "tool_call_id": "call_123",
+                "tool_event_source": "langgraph.tool",
+                "trace_id": "trace_1",
+            },
+        )
+
+    def test_runtime_context_contract_event_kinds_match_side_effect_surfaces(self) -> None:
+        self.assertEqual(
+            SIDE_EFFECT_RUNTIME_EVENT_KINDS,
+            ("command", "file_access", "http_request"),
         )
 
 

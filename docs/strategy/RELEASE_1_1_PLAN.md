@@ -326,7 +326,7 @@ The packaged LangGraph eval suite should remain a release gate.
 
 Release target:
 
-- `17 / 17` passing
+- `19 / 19` passing
 - same status distribution unless an intentional fixture change is documented
 - no unexpected allows, unexpected blocks, or unexpected reviews
 

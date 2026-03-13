@@ -12,7 +12,7 @@ from importlib.resources.abc import Traversable
 from typing import Any
 
 from ..approval import ApprovalHandler, ApprovalOutcome, ApprovalResponse
-from ..audit import InMemoryAuditSink
+from ..audit import InMemoryAuditSink, export_audit_trace
 from ..config import FirewallConfig
 from ..exceptions import FirewallViolation, ReviewRequired
 from ..firewall import create_firewall
@@ -378,20 +378,7 @@ def run_langgraph_eval_case(case: LangGraphEvalCase) -> EvaluationResult:
         expected_event_kinds=list(case.expected_event_kinds),
         expected_action_sequence=list(case.expected_action_sequence),
         audit_summary=audit_sink.summary().to_dict(),
-        audit_trace=[
-            {
-                "event_kind": entry.event.kind.value,
-                "event_operation": entry.event.operation,
-                "action": entry.decision.action.value,
-                "rule": entry.decision.rule,
-                "source": entry.event.source,
-                "decision_metadata": dict(entry.decision.metadata),
-                "runtime_context": dict(
-                    entry.event.payload.get("runtime_context", {})
-                ),
-            }
-            for entry in audit_sink.entries
-        ],
+        audit_trace=export_audit_trace(audit_sink.entries),
         detail=detail,
     )
 
