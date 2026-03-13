@@ -228,6 +228,7 @@ Ship:
 - required trace assertions
 - capability-driven test expectations
 - registry-backed eval evidence entrypoints for official adapters
+- a shared release-gate entrypoint that combines conformance and eval expectations
 
 Definition of done:
 

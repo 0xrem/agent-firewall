@@ -90,6 +90,28 @@ class OfficialAdapterDefinition:
             )
         return self.eval_expectations.case_name(alias)
 
+    def validate_release_gate(
+        self,
+        *,
+        path: str | Traversable | None = None,
+    ) -> "OfficialAdapterReleaseGateReport":
+        """Run the packaged adapter release gate against one shared eval summary."""
+
+        summary = self.run_eval_suite(path=path)
+        payload = summary.to_dict()
+        conformance = validate_eval_summary(payload, self.spec)
+        eval_expectations = None
+        if self.eval_expectations is not None:
+            eval_expectations = validate_eval_summary_against_expectations(
+                payload,
+                self.eval_expectations,
+            )
+        return OfficialAdapterReleaseGateReport(
+            adapter=self.name,
+            conformance=conformance,
+            eval_expectations=eval_expectations,
+        )
+
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-friendly registry record for one official adapter."""
 
@@ -101,6 +123,32 @@ class OfficialAdapterDefinition:
         }
         if self.eval_runner:
             payload["eval_runner"] = self.eval_runner
+        if self.eval_expectations is not None:
+            payload["eval_expectations"] = self.eval_expectations.to_dict()
+        return payload
+
+
+@dataclass(frozen=True, slots=True)
+class OfficialAdapterReleaseGateReport:
+    """Combined release-gate result for one official runtime adapter."""
+
+    adapter: str
+    conformance: ConformanceReport
+    eval_expectations: EvalExpectationReport | None = None
+
+    @property
+    def ok(self) -> bool:
+        return self.conformance.ok and (
+            self.eval_expectations is None
+            or self.eval_expectations.ok
+        )
+
+    def to_dict(self) -> dict[str, object]:
+        payload = {
+            "adapter": self.adapter,
+            "ok": self.ok,
+            "conformance": self.conformance.to_dict(),
+        }
         if self.eval_expectations is not None:
             payload["eval_expectations"] = self.eval_expectations.to_dict()
         return payload
@@ -208,3 +256,13 @@ def validate_official_adapter_eval_expectations(
     """Run packaged eval evidence and validate the adapter's release-gate expectations."""
 
     return get_official_adapter(name).validate_eval_expectations(path=path)
+
+
+def validate_official_adapter_release_gate(
+    name: str,
+    *,
+    path: str | Traversable | None = None,
+) -> OfficialAdapterReleaseGateReport:
+    """Run the shared release gate for one official runtime adapter."""
+
+    return get_official_adapter(name).validate_release_gate(path=path)

@@ -21,6 +21,7 @@ from agentfirewall.integrations import (
     validate_eval_summary,
     validate_official_adapter_conformance,
     validate_official_adapter_eval_expectations,
+    validate_official_adapter_release_gate,
 )
 from agentfirewall.runtime_context import (
     REQUIRED_RUNTIME_CONTEXT_FIELDS,
@@ -158,6 +159,14 @@ class LangGraphConformanceTests(unittest.TestCase):
         report = validate_official_adapter_eval_expectations("langgraph")
 
         self.assertTrue(report.ok, msg=report.to_dict())
+
+    def test_official_adapter_registry_can_validate_langgraph_release_gate(self) -> None:
+        report = validate_official_adapter_release_gate("langgraph")
+
+        self.assertTrue(report.ok, msg=report.to_dict())
+        self.assertTrue(report.conformance.ok)
+        self.assertIsNotNone(report.eval_expectations)
+        self.assertTrue(report.eval_expectations.ok)
 
     def test_langgraph_eval_suite_still_passes_under_adapter_contract(self) -> None:
         from agentfirewall.evals import run_langgraph_eval_suite
