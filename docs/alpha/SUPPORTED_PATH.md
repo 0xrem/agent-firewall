@@ -136,7 +136,7 @@ The per-scenario audit summaries also include:
 
 For `log-only` flows, trace entries preserve `decision_metadata.original_action` so a user can see whether a step would have been reviewed or blocked before turning on enforcement.
 
-The packaged eval suite covers 17 task-oriented local cases, and the local trial runner covers 9 local workflows built to look more like real user tasks instead of isolated tool calls.
+The packaged eval suite covers 19 task-oriented local cases, and the local trial runner covers 10 local workflows built to look more like real user tasks instead of isolated tool calls.
 
 ## What This Contract Does Not Promise Yet
 

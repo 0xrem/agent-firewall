@@ -5,6 +5,11 @@ from .contracts import (
     AdapterSupportLevel,
     RuntimeAdapterSpec,
 )
+from .conformance import (
+    ConformanceIssue,
+    ConformanceReport,
+    validate_eval_summary,
+)
 from .langgraph import (
     LangGraphFirewallMiddleware,
     create_firewalled_langgraph_agent,
@@ -18,6 +23,8 @@ from .langgraph import (
 __all__ = [
     "AdapterCapability",
     "AdapterSupportLevel",
+    "ConformanceIssue",
+    "ConformanceReport",
     "LangGraphFirewallMiddleware",
     "RuntimeAdapterSpec",
     "create_firewalled_langgraph_agent",
@@ -26,4 +33,5 @@ __all__ = [
     "create_guarded_langgraph_http_tool",
     "create_guarded_langgraph_shell_tool",
     "get_langgraph_adapter_spec",
+    "validate_eval_summary",
 ]

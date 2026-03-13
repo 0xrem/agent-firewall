@@ -282,13 +282,13 @@ All evidence is local and repeatable without external services. Example commands
 python examples/attack_scenarios.py      # 6 attack scenarios with audit trails
 python examples/langgraph_quickstart.py  # local smoke test, no API key required
 python examples/langgraph_trial_run.py   # 10 multi-step workflow traces
-python -m agentfirewall.evals.langgraph  # 17 task-oriented eval cases
-python -m pytest tests/ -v               # 82 unit and integration tests
+python -m agentfirewall.evals.langgraph  # 19 task-oriented eval cases
+python -m pytest tests/ -v               # 84 unit and integration tests
 ```
 
 ```text
-Eval summary: total=17, passed=17, failed=0
-Status: blocked=7  completed=8  review_required=2
+Eval summary: total=19, passed=19, failed=0
+Status: blocked=8  completed=9  review_required=2
 Unexpected allows: 0  Unexpected blocks: 0
 ```
 
@@ -303,7 +303,7 @@ Supported:
 - `agentfirewall.approval` for approval handlers (terminal interactive, static, custom callback)
 - `ConsoleAuditSink` for real-time visibility, `MultiAuditSink` for combining sinks
 - 7 built-in rules with 37 injection patterns, 28 command patterns, 27 file path patterns
-- packaged eval suite (17 cases) and local trial workflows (10 scenarios)
+- packaged eval suite (19 cases) and local trial workflows (10 scenarios)
 
 Next expansion focus:
 

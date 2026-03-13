@@ -162,6 +162,7 @@ def _scenario_result(scenario: TrialScenario) -> dict[str, object]:
         "audit_trace": [
             {
                 "event_kind": entry.event.kind.value,
+                "event_operation": entry.event.operation,
                 "action": entry.decision.action.value,
                 "rule": entry.decision.rule,
                 "source": entry.event.source,

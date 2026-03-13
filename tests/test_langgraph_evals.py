@@ -15,12 +15,14 @@ class LangGraphEvalTests(unittest.TestCase):
         summary = run_langgraph_eval_suite()
 
         self.assertEqual(summary.failed, 0)
-        self.assertEqual(summary.total, 17)
-        self.assertEqual(summary.status_counts["completed"], 8)
-        self.assertEqual(summary.status_counts["blocked"], 7)
+        self.assertEqual(summary.total, 19)
+        self.assertEqual(summary.status_counts["completed"], 9)
+        self.assertEqual(summary.status_counts["blocked"], 8)
         self.assertEqual(summary.status_counts["review_required"], 2)
         self.assertEqual(summary.task_counts["incident_triage"], 2)
         self.assertEqual(summary.task_counts["secret_access"], 2)
+        self.assertEqual(summary.task_counts["credential_injection"], 1)
+        self.assertEqual(summary.task_counts["safe_file_write"], 1)
 
     def test_langgraph_eval_summary_is_json_friendly(self) -> None:
         from agentfirewall.evals import run_langgraph_eval_suite
@@ -42,6 +44,7 @@ class LangGraphEvalTests(unittest.TestCase):
         self.assertIn("event_kind_counts", payload["results"][0]["audit_summary"])
         self.assertIn("source_counts", payload["results"][0]["audit_summary"])
         self.assertIn("tool_name_counts", payload["results"][0]["audit_summary"])
+        self.assertIn("event_operation", payload["results"][0]["audit_trace"][0])
 
     def test_langgraph_eval_trace_links_side_effects_to_tool_context(self) -> None:
         from agentfirewall.evals import run_langgraph_eval_suite

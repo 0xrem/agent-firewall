@@ -5,6 +5,7 @@ from agentfirewall.integrations import (
     AdapterCapability,
     AdapterSupportLevel,
     get_langgraph_adapter_spec,
+    validate_eval_summary,
 )
 from agentfirewall.runtime_context import (
     REQUIRED_RUNTIME_CONTEXT_FIELDS,
@@ -64,7 +65,15 @@ class LangGraphConformanceTests(unittest.TestCase):
         summary = run_langgraph_eval_suite()
 
         self.assertEqual(summary.failed, 0)
-        self.assertEqual(summary.total, 17)
+        self.assertEqual(summary.total, 19)
+
+    def test_langgraph_eval_summary_passes_reusable_conformance_validator(self) -> None:
+        from agentfirewall.evals import run_langgraph_eval_suite
+
+        spec = get_langgraph_adapter_spec()
+        report = validate_eval_summary(run_langgraph_eval_suite().to_dict(), spec)
+
+        self.assertTrue(report.ok, msg=report.to_dict())
 
     def test_langgraph_side_effect_traces_include_required_runtime_context(self) -> None:
         from agentfirewall.evals import run_langgraph_eval_suite
@@ -88,6 +97,21 @@ class LangGraphConformanceTests(unittest.TestCase):
                         f"required runtime_context fields: {missing}"
                     ),
                 )
+
+    def test_langgraph_eval_trace_includes_event_operation_for_file_access(self) -> None:
+        from agentfirewall.evals import run_langgraph_eval_suite
+
+        summary = run_langgraph_eval_suite().to_dict()
+        write_case = next(
+            result for result in summary["results"]
+            if result["name"] == "guarded_file_write_allows_safe_path"
+        )
+        file_trace = next(
+            item for item in write_case["audit_trace"]
+            if item["event_kind"] == "file_access"
+        )
+
+        self.assertEqual(file_trace["event_operation"], "write")
 
     def test_langgraph_review_and_log_only_semantics_match_contract(self) -> None:
         from agentfirewall.evals import run_langgraph_eval_suite

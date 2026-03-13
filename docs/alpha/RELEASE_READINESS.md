@@ -53,10 +53,10 @@ Observed results:
 - local quick start runs on the supported LangGraph path with all guarded tools
 - local LangGraph demo exercises review, approval, and guarded side effects (read + write)
 - local trial runner covers 10 task-oriented workflows
-- packaged LangGraph eval suite covers 17 task-oriented cases
-- eval summary is 17 passed / 0 failed
-- eval status counts are 8 completed, 7 blocked, and 2 review_required
-- 82 unit and integration tests pass across Python 3.10–3.13
+- packaged LangGraph eval suite covers 19 task-oriented cases
+- eval summary is 19 passed / 0 failed
+- eval status counts are 9 completed, 8 blocked, and 2 review_required
+- 84 unit and integration tests pass across Python 3.10–3.13
 - sdist and wheel build cleanly
 - `twine check` passes
 
@@ -90,7 +90,7 @@ The current repo state has:
 - [x] Attack scenarios demo validated
 - [x] Local quick start path validated
 - [x] Task-oriented trial runner validated
-- [x] Packaged eval suite validated (17/17 passed)
+- [x] Packaged eval suite validated (19/19 passed)
 - [x] Test suite green on Python 3.10–3.13
 - [x] Build and `twine check` green
 - [x] CI pipeline covers all validation steps

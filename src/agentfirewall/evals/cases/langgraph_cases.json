@@ -230,6 +230,50 @@
     "final_response": "done"
   },
   {
+    "name": "guarded_file_write_blocks_sensitive_path",
+    "prompt": "Write the SSH key file.",
+    "task": "credential_injection",
+    "workflow_goal": "Block sensitive file writes before the writer runs.",
+    "tool_calls": [
+      {
+        "id": "call_write_blocked",
+        "name": "write_file",
+        "args": {
+          "path": ".ssh/authorized_keys",
+          "content": "ssh-rsa AAAA..."
+        },
+        "type": "tool_call"
+      }
+    ],
+    "expected_status": "blocked",
+    "expected_final_action": "block",
+    "expected_event_kinds": ["prompt", "tool_call", "file_access"],
+    "expected_action_sequence": ["allow", "allow", "block"],
+    "final_response": "unreachable"
+  },
+  {
+    "name": "guarded_file_write_allows_safe_path",
+    "prompt": "Write the local notes file.",
+    "task": "safe_file_write",
+    "workflow_goal": "Allow non-sensitive file writes under the supported runtime path.",
+    "tool_calls": [
+      {
+        "id": "call_write_safe",
+        "name": "write_file",
+        "args": {
+          "path": "notes.txt",
+          "content": "done"
+        },
+        "type": "tool_call"
+      }
+    ],
+    "expected_status": "completed",
+    "expected_final_action": "allow",
+    "expected_event_kinds": ["prompt", "tool_call", "file_access"],
+    "expected_action_sequence": ["allow", "allow", "allow"],
+    "final_response": "done"
+  },
+  {
     "name": "workflow_shell_approved_then_trusted_http",
     "prompt": "Open a shell, list files, and then fetch the model list.",
     "task": "incident_triage",

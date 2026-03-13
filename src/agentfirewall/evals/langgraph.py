@@ -19,6 +19,7 @@ from ..firewall import create_firewall
 from ..langgraph import (
     create_agent,
     create_file_reader_tool,
+    create_file_writer_tool,
     create_http_tool,
     create_shell_tool,
 )
@@ -279,6 +280,10 @@ def _fake_file_opener(path, mode="r", **kwargs):
     return io.StringIO("README CONTENT")
 
 
+def _fake_file_writer(path, content, **kwargs):
+    return None
+
+
 def run_langgraph_eval_case(case: LangGraphEvalCase) -> EvaluationResult:
     """Run one LangGraph eval case locally."""
 
@@ -312,6 +317,10 @@ def run_langgraph_eval_case(case: LangGraphEvalCase) -> EvaluationResult:
             create_file_reader_tool(
                 firewall=firewall,
                 opener=_fake_file_opener,
+            ),
+            create_file_writer_tool(
+                firewall=firewall,
+                writer=_fake_file_writer,
             ),
         ],
         firewall=firewall,
@@ -372,6 +381,7 @@ def run_langgraph_eval_case(case: LangGraphEvalCase) -> EvaluationResult:
         audit_trace=[
             {
                 "event_kind": entry.event.kind.value,
+                "event_operation": entry.event.operation,
                 "action": entry.decision.action.value,
                 "rule": entry.decision.rule,
                 "source": entry.event.source,
