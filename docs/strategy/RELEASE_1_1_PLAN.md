@@ -105,6 +105,7 @@ The exact module names can change, but the responsibilities should look like thi
 - runtime-context field contract
 - shared conformance fixtures and assertions
 - runtime translation helpers for prompt extraction, tool dispatch normalization, and tool-context propagation
+- shared adapter assembly helpers for resolving a firewall from either an existing object or supported high-level factory options
 
 ### Official Adapter
 

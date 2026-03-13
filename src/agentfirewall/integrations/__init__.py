@@ -1,5 +1,6 @@
 """Framework-specific integration adapters for AgentFirewall."""
 
+from .assembly import resolve_adapter_firewall
 from .contracts import (
     AdapterCapability,
     AdapterSupportLevel,
@@ -57,6 +58,7 @@ __all__ = [
     "get_langgraph_adapter_spec",
     "list_official_adapters",
     "list_official_adapter_specs",
+    "resolve_adapter_firewall",
     "run_official_adapter_eval_suite",
     "validate_eval_summary",
     "validate_official_adapter_conformance",

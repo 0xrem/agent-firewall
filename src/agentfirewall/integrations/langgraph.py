@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..approval import ApprovalHandler
-from ..audit import AuditSink, InMemoryAuditSink
+from ..audit import AuditSink
 from ..config import FirewallConfig
 from ..enforcers import (
     GuardedFileAccess,
@@ -17,10 +17,11 @@ from ..enforcers import (
     GuardedSubprocessRunner,
 )
 from ..events import EventContext
-from ..firewall import AgentFirewall, create_firewall
+from ..firewall import AgentFirewall
 from ..policy_packs import (
     PolicyPackConfig,
 )
+from .assembly import resolve_adapter_firewall
 from ..runtime_context import (
     attach_runtime_context,
     build_tool_runtime_context,
@@ -364,29 +365,13 @@ def create_firewalled_langgraph_agent(
             "Install with `pip install agentfirewall[langgraph]`."
         ) from exc
 
-    if firewall is not None and (
-        config is not None
-        or audit_sink is not None
-        or approval_handler is not None
-        or policy_pack != "default"
-    ):
-        raise TypeError(
-            "Pass either `firewall` or high-level firewall parameters, not both."
-        )
-
-    if firewall is None:
-        resolved_firewall = create_firewall(
-            config=config or FirewallConfig(),
-            policy_pack=policy_pack,
-            audit_sink=(
-                audit_sink
-                if audit_sink is not None
-                else InMemoryAuditSink()
-            ),
-            approval_handler=approval_handler,
-        )
-    else:
-        resolved_firewall = firewall
+    resolved_firewall = resolve_adapter_firewall(
+        firewall=firewall,
+        config=config,
+        policy_pack=policy_pack,
+        audit_sink=audit_sink,
+        approval_handler=approval_handler,
+    )
 
     adapter_middleware = LangGraphFirewallMiddleware(
         resolved_firewall,
