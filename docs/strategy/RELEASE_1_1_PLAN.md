@@ -104,6 +104,7 @@ The exact module names can change, but the responsibilities should look like thi
 - capability declaration model
 - runtime-context field contract
 - shared conformance fixtures and assertions
+- runtime translation helpers for prompt extraction, tool dispatch normalization, and tool-context propagation
 
 ### Official Adapter
 

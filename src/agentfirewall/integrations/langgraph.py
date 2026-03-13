@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import nullcontext
+from dataclasses import dataclass
 from typing import Any
 
 from ..approval import ApprovalHandler
@@ -20,7 +21,11 @@ from ..firewall import AgentFirewall, create_firewall
 from ..policy_packs import (
     PolicyPackConfig,
 )
-from ..runtime_context import attach_runtime_context, tool_runtime_context
+from ..runtime_context import (
+    attach_runtime_context,
+    build_tool_runtime_context,
+    runtime_event_context,
+)
 from .contracts import (
     AdapterCapability,
     AdapterSupportLevel,
@@ -222,6 +227,80 @@ def _format_subprocess_result(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class LangGraphEventTranslator:
+    """Translate LangGraph runtime hooks into shared AgentFirewall events."""
+
+    source: str = "langgraph"
+
+    @property
+    def prompt_source(self) -> str:
+        return f"{self.source}.prompt"
+
+    @property
+    def tool_source(self) -> str:
+        return f"{self.source}.tool"
+
+    def prompt_event(
+        self,
+        state: Mapping[str, Any],
+    ) -> EventContext | None:
+        messages = state.get("messages", ())
+        if not isinstance(messages, Sequence):
+            return None
+
+        prompt_text = _latest_user_text(messages)
+        if not prompt_text:
+            return None
+
+        return EventContext.prompt(
+            prompt_text,
+            source=self.prompt_source,
+        )
+
+    def tool_event(
+        self,
+        tool_call: Mapping[str, Any],
+    ) -> EventContext:
+        args, kwargs = _normalize_tool_payload(tool_call)
+        event = EventContext.tool_call(
+            str(tool_call.get("name", "")),
+            args=args,
+            kwargs=kwargs,
+            source=self.tool_source,
+        )
+        tool_call_id = tool_call.get("id")
+        if tool_call_id is not None:
+            event.payload["tool_call_id"] = str(tool_call_id)
+        return event
+
+    def tool_runtime_metadata(
+        self,
+        tool_call: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        tool_name = str(tool_call.get("name", "")).lower()
+        tool_call_id = tool_call.get("id")
+        if not tool_name and tool_call_id is None:
+            return {}
+
+        return build_tool_runtime_context(
+            runtime=self.source,
+            tool_name=tool_name or None,
+            tool_call_id=(
+                str(tool_call_id)
+                if tool_call_id is not None
+                else None
+            ),
+            tool_event_source=self.tool_source,
+        )
+
+    def tool_execution_context(self, tool_call: Mapping[str, Any]) -> Any:
+        metadata = self.tool_runtime_metadata(tool_call)
+        if not metadata:
+            return nullcontext()
+        return runtime_event_context(**metadata)
+
+
 class LangGraphFirewallMiddleware(AgentMiddleware):
     """Middleware that routes LangGraph runtime events through AgentFirewall."""
 
@@ -235,68 +314,30 @@ class LangGraphFirewallMiddleware(AgentMiddleware):
         self.firewall = firewall
         self.inspect_prompts = inspect_prompts
         self.source = source
+        self.translator = LangGraphEventTranslator(source=source)
 
     def before_model(self, state: Mapping[str, Any], runtime: Any) -> dict[str, Any] | None:
         if not self.inspect_prompts:
             return None
 
-        messages = state.get("messages", ())
-        if not isinstance(messages, Sequence):
+        event = self.translator.prompt_event(state)
+        if event is None:
             return None
 
-        prompt_text = _latest_user_text(messages)
-        if not prompt_text:
-            return None
-
-        self.firewall.enforce(
-            EventContext.prompt(
-                prompt_text,
-                source=f"{self.source}.prompt",
-            )
-        )
+        self.firewall.enforce(event)
         return None
 
     def wrap_tool_call(self, request: Any, handler: Any) -> Any:
-        event = self._tool_event(request.tool_call)
+        event = self.translator.tool_event(request.tool_call)
         self.firewall.enforce(event)
-        with self._tool_execution_context(request.tool_call):
+        with self.translator.tool_execution_context(request.tool_call):
             return handler(request)
 
     async def awrap_tool_call(self, request: Any, handler: Any) -> Any:
-        event = self._tool_event(request.tool_call)
+        event = self.translator.tool_event(request.tool_call)
         self.firewall.enforce(event)
-        with self._tool_execution_context(request.tool_call):
+        with self.translator.tool_execution_context(request.tool_call):
             return await handler(request)
-
-    def _tool_event(self, tool_call: Mapping[str, Any]) -> EventContext:
-        args, kwargs = _normalize_tool_payload(tool_call)
-        event = EventContext.tool_call(
-            str(tool_call.get("name", "")),
-            args=args,
-            kwargs=kwargs,
-            source=f"{self.source}.tool",
-        )
-        tool_call_id = tool_call.get("id")
-        if tool_call_id is not None:
-            event.payload["tool_call_id"] = str(tool_call_id)
-        return event
-
-    def _tool_execution_context(self, tool_call: Mapping[str, Any]) -> Any:
-        tool_name = str(tool_call.get("name", "")).lower()
-        tool_call_id = tool_call.get("id")
-        if not tool_name and tool_call_id is None:
-            return nullcontext()
-
-        return tool_runtime_context(
-            runtime=self.source,
-            tool_name=tool_name,
-            tool_call_id=(
-                str(tool_call_id)
-                if tool_call_id is not None
-                else None
-            ),
-            tool_event_source=f"{self.source}.tool",
-        )
 
 
 def create_firewalled_langgraph_agent(
