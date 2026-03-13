@@ -283,7 +283,7 @@ python examples/attack_scenarios.py      # 6 个攻击场景 + 审计追踪
 python examples/langgraph_quickstart.py  # 本地冒烟验证，不需要 API key
 python examples/langgraph_trial_run.py   # 10 个多步骤工作流追踪
 python -m agentfirewall.evals.langgraph  # 17 个面向任务的 eval case
-python -m pytest tests/ -v               # 77 个单元测试和集成测试
+python -m pytest tests/ -v               # 82 个单元测试和集成测试
 ```
 
 ```text

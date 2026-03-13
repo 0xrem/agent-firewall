@@ -15,12 +15,37 @@ _RUNTIME_CONTEXT: ContextVar[dict[str, Any] | None] = ContextVar(
     default=None,
 )
 
+REQUIRED_RUNTIME_CONTEXT_FIELDS: tuple[str, ...] = (
+    "runtime",
+    "tool_name",
+    "tool_call_id",
+    "tool_event_source",
+)
+
 
 def current_runtime_context() -> dict[str, Any]:
     """Return the current correlated runtime context, if any."""
 
     current = _RUNTIME_CONTEXT.get()
     return dict(current) if current else {}
+
+
+def missing_runtime_context_fields(
+    metadata: Mapping[str, Any] | None,
+    *,
+    required_fields: tuple[str, ...] = REQUIRED_RUNTIME_CONTEXT_FIELDS,
+) -> tuple[str, ...]:
+    """Return the required runtime-context fields missing from metadata."""
+
+    if not isinstance(metadata, Mapping):
+        return required_fields
+
+    missing: list[str] = []
+    for field in required_fields:
+        value = metadata.get(field)
+        if value in (None, "", (), [], {}):
+            missing.append(field)
+    return tuple(missing)
 
 
 @contextmanager

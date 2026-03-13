@@ -21,6 +21,12 @@ from ..policy_packs import (
     PolicyPackConfig,
 )
 from ..runtime_context import attach_runtime_context, runtime_event_context
+from .contracts import (
+    AdapterCapability,
+    AdapterSupportLevel,
+    RuntimeAdapterSpec,
+    capability_set,
+)
 
 try:
     from langchain.agents.middleware import AgentMiddleware
@@ -29,6 +35,34 @@ except ImportError:  # pragma: no cover - exercised when optional deps are absen
         """Fallback base class when LangGraph dependencies are unavailable."""
 
         pass
+
+
+LANGGRAPH_ADAPTER_SPEC = RuntimeAdapterSpec(
+    name="langgraph",
+    module="agentfirewall.langgraph",
+    support_level=AdapterSupportLevel.SUPPORTED,
+    capabilities=capability_set(
+        AdapterCapability.PROMPT_INSPECTION,
+        AdapterCapability.TOOL_CALL_INTERCEPTION,
+        AdapterCapability.SHELL_ENFORCEMENT,
+        AdapterCapability.FILE_READ_ENFORCEMENT,
+        AdapterCapability.FILE_WRITE_ENFORCEMENT,
+        AdapterCapability.HTTP_ENFORCEMENT,
+        AdapterCapability.RUNTIME_CONTEXT_CORRELATION,
+        AdapterCapability.REVIEW_SEMANTICS,
+        AdapterCapability.LOG_ONLY_SEMANTICS,
+    ),
+    notes=(
+        "First official AgentFirewall adapter with guarded shell, file, and "
+        "outbound HTTP paths."
+    ),
+)
+
+
+def get_langgraph_adapter_spec() -> RuntimeAdapterSpec:
+    """Return the internal adapter contract for the LangGraph integration."""
+
+    return LANGGRAPH_ADAPTER_SPEC
 
 
 def _langgraph_tool_decorator(*, name: str, description: str):

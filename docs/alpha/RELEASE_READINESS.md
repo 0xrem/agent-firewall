@@ -56,7 +56,7 @@ Observed results:
 - packaged LangGraph eval suite covers 17 task-oriented cases
 - eval summary is 17 passed / 0 failed
 - eval status counts are 8 completed, 7 blocked, and 2 review_required
-- 77 unit and integration tests pass across Python 3.10–3.13
+- 82 unit and integration tests pass across Python 3.10–3.13
 - sdist and wheel build cleanly
 - `twine check` passes
 

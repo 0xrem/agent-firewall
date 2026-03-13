@@ -283,7 +283,7 @@ python examples/attack_scenarios.py      # 6 attack scenarios with audit trails
 python examples/langgraph_quickstart.py  # local smoke test, no API key required
 python examples/langgraph_trial_run.py   # 10 multi-step workflow traces
 python -m agentfirewall.evals.langgraph  # 17 task-oriented eval cases
-python -m pytest tests/ -v               # 77 unit and integration tests
+python -m pytest tests/ -v               # 82 unit and integration tests
 ```
 
 ```text
