@@ -124,6 +124,10 @@ This comes later because:
 - add adapter capability matrix
 - add conformance tests and example traces
 
+Detailed execution plan:
+
+- see [`RELEASE_1_1_PLAN.md`](./RELEASE_1_1_PLAN.md)
+
 ### 1.2
 
 - ship a second official runtime adapter
