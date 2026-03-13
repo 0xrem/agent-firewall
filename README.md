@@ -24,9 +24,11 @@
   />
 </p>
 
-**Runtime firewall for AI agents — stops dangerous side effects before they happen.**
+**Runtime firewall for tool-using AI systems — stops dangerous side effects before they happen.**
 
-If your agent can call tools, prompt injection is no longer a prompt-quality issue. It is an execution issue. AgentFirewall sits inline in the execution path and decides `allow`, `block`, `review`, or `log` **before** shell, file, network, or tool side effects happen.
+If your runtime can call tools, prompt injection is no longer only a prompt-quality issue. It is an execution issue. AgentFirewall sits inline in the execution path and decides `allow`, `block`, `review`, or `log` **before** shell, file, network, or tool side effects happen.
+
+`1.0.0` ships the first official adapter for LangGraph. The long-term product direction is broader: keep one shared policy, approval, and audit core that can later sit under more agent runtimes, MCP integrations, and other tool-calling systems without changing the execution model.
 
 ## See It In Action
 
@@ -173,9 +175,9 @@ except FirewallViolation as exc:
 ## Architecture
 
 ```text
-User Prompt
+User Prompt / Tool Output / External Input
    ↓
-LangGraph Agent
+Tool-Using Runtime
    ↓
 AgentFirewall
    ├─ prompt inspection        → ReviewRequired on injection patterns
@@ -187,7 +189,26 @@ AgentFirewall
 Side effects (only if allowed)
 ```
 
-AgentFirewall is not a passive scanner beside the agent. It sits **in the execution path** between the agent runtime and the thing that can cause damage. The same firewall instance drives both the middleware (prompt and tool-call events) and the guarded tool implementations (shell, file, HTTP), so audit traces link side-effect events back to the originating tool call.
+AgentFirewall is not a passive scanner beside the runtime. It sits **in the execution path** between the tool-using system and the thing that can cause damage. Today the supported runtime path is LangGraph. The design goal is to keep framework-specific logic in adapters while the policy, approval, audit, and guarded execution model stay reusable across future runtimes.
+
+## Product Direction
+
+AgentFirewall is being built as one runtime firewall core with adapter-specific entrypoints, not as a separate security product for each framework.
+
+Current promise in `1.0.0`:
+
+- one supported LangGraph adapter
+- official guarded shell, HTTP, file-read, and file-write tools
+- shared policy, approval, audit, and `log-only` behavior across that path
+
+Expansion path:
+
+- keep the core policy engine runtime-agnostic
+- reuse the same execution-surface enforcers across adapters
+- add new runtime adapters one by one, starting with the highest-reuse tool-calling runtimes
+- extend into MCP and lower-level wrappers without resetting policy semantics
+
+See [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md) for the expansion plan and [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md) for messaging guardrails.
 
 ## Built-in Rules
 
@@ -273,7 +294,7 @@ Unexpected allows: 0  Unexpected blocks: 0
 
 ## Status
 
-`1.0.0` — stable release for the LangGraph runtime path.
+`1.0.0` — first stable release, with LangGraph as the first official runtime adapter.
 
 Supported:
 
@@ -284,11 +305,20 @@ Supported:
 - 7 built-in rules with 37 injection patterns, 28 command patterns, 27 file path patterns
 - packaged eval suite (17 cases) and local trial workflows (10 scenarios)
 
+Next expansion focus:
+
+- adapter compatibility contract and conformance tests
+- a second official runtime adapter
+- MCP client/server support on the shared core
+- generic wrappers for runtimes without a first-class adapter yet
+
 Not in scope for 1.0.0:
 
 - a second official runtime adapter
 - a reviewer UI or centralized approval service
 - production-grade false-positive tuning beyond the default policy pack
+
+See [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md) for sequencing and [`docs/alpha/SUPPORTED_PATH.md`](./docs/alpha/SUPPORTED_PATH.md) for the current supported contract.
 
 ## Contributing
 
@@ -297,7 +327,7 @@ Useful contributions right now:
 - realistic agent attack workflows
 - false-positive pressure cases
 - policy-pack improvements for new rule surfaces
-- runtime integration hardening for other frameworks
+- adapter compatibility and runtime integration hardening
 
 ## License
 

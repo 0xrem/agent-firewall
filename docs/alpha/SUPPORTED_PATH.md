@@ -22,6 +22,7 @@ Use `agentfirewall.langgraph` for the supported runtime path:
 - `create_shell_tool(...)`
 - `create_http_tool(...)`
 - `create_file_reader_tool(...)`
+- `create_file_writer_tool(...)`
 
 Use `agentfirewall.approval` for the documented approval helper path:
 

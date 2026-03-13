@@ -24,9 +24,11 @@
   />
 </p>
 
-**面向 AI Agent 的运行时防火墙 — 在危险副作用发生前拦住它。**
+**面向可调用工具的 AI 系统的运行时防火墙 — 在危险副作用发生前拦住它。**
 
-只要你的 agent 能调用工具，prompt injection 就不再只是提示词质量问题，而是执行路径问题。AgentFirewall 以内联方式卡在执行路径里，在 shell、文件、网络或工具副作用**真正发生前**做出 `allow`、`block`、`review` 或 `log` 决策。
+只要你的 runtime 能调用工具，prompt injection 就不再只是提示词质量问题，而是执行路径问题。AgentFirewall 以内联方式卡在执行路径里，在 shell、文件、网络或工具副作用**真正发生前**做出 `allow`、`block`、`review` 或 `log` 决策。
+
+`1.0.0` 当前交付的是第一个官方 adapter: LangGraph。更长期的产品方向会更大一些：把 policy、approval 和 audit 做成同一个共享内核，后续再挂到更多 agent runtime、MCP 集成和其他 tool-calling 系统上，而不是每个框架单独做一套。
 
 ## 看看效果
 
@@ -173,9 +175,9 @@ except FirewallViolation as exc:
 ## 架构
 
 ```text
-User Prompt
+User Prompt / Tool Output / External Input
    ↓
-LangGraph Agent
+Tool-Using Runtime
    ↓
 AgentFirewall
    ├─ prompt inspection        → 注入模式触发 ReviewRequired
@@ -187,7 +189,26 @@ AgentFirewall
 Side effects（仅在允许时执行）
 ```
 
-AgentFirewall 不是在 agent 旁边被动扫一眼。它**卡在执行路径上**，在 agent runtime 和真正可能造成损害的目标之间。同一个 firewall 实例同时驱动 middleware（prompt 和 tool-call 事件）和 guarded tool 实现（shell、file、HTTP），所以审计记录能把副作用事件链接回发起操作的原始工具调用。
+AgentFirewall 不是在 runtime 旁边被动扫一眼。它**卡在执行路径上**，在可调用工具的 AI 系统和真正可能造成损害的目标之间。今天官方支持的 runtime 路径是 LangGraph；更长期的设计目标，是把框架差异收敛在 adapter 层里，让 policy、approval、audit 和 guarded execution 这套模型可以被更多 runtime 复用。
+
+## 产品方向
+
+AgentFirewall 的方向不是为每个框架单独造一个安全产品，而是做一个共享的 runtime firewall 内核，再给不同 runtime 暴露对应的 adapter 入口。
+
+`1.0.0` 当前承诺的是：
+
+- 一个官方支持的 LangGraph adapter
+- 官方 guarded shell、HTTP、文件读、文件写工具
+- 在这条路径上共享同一套 policy、approval、audit 和 `log-only` 行为
+
+后续扩展路径是：
+
+- 核心 policy engine 保持 runtime 无关
+- 执行面 enforcer 在不同 adapter 之间复用
+- 按 adapter 一个一个扩，优先做复用度高的 tool-calling runtime
+- 再扩到 MCP 和更低层的 wrapper，但不重置 policy 语义
+
+具体路线见 [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md)，宣传口径见 [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md)。
 
 ## 内置规则
 
@@ -273,7 +294,7 @@ Eval 汇总: total=17, passed=17, failed=0
 
 ## 当前状态
 
-`1.0.0` — LangGraph runtime 路径的正式稳定版。
+`1.0.0` — 第一个正式稳定版，LangGraph 是第一个官方 runtime adapter。
 
 当前支持的：
 
@@ -284,11 +305,20 @@ Eval 汇总: total=17, passed=17, failed=0
 - 7 条内置规则，37 种注入模式、28 种命令模式、27 种文件路径模式
 - 打包的 eval 套件（17 个 case）和本地试运行工作流（10 个场景）
 
+下一阶段重点：
+
+- adapter 兼容性契约和一致性测试
+- 第二个官方 runtime adapter
+- 基于共享内核的 MCP client/server 支持
+- 给还没有官方 adapter 的 runtime 提供通用 wrapper
+
 1.0.0 暂不包含的：
 
 - 第二个官方 runtime adapter
 - reviewer UI 或集中式审批服务
 - 超越默认策略包的生产级误报调优
+
+扩展节奏见 [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md)，当前支持范围见 [`docs/alpha/SUPPORTED_PATH.md`](./docs/alpha/SUPPORTED_PATH.md)。
 
 ## 贡献
 
@@ -297,7 +327,7 @@ Eval 汇总: total=17, passed=17, failed=0
 - 更真实的 agent 攻击 workflow
 - 误报压力测试 case
 - policy pack 改进
-- runtime integration hardening
+- adapter 兼容性和 runtime integration hardening
 
 ## License
 

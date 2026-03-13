@@ -56,7 +56,7 @@ Observed results:
 - packaged LangGraph eval suite covers 17 task-oriented cases
 - eval summary is 17 passed / 0 failed
 - eval status counts are 8 completed, 7 blocked, and 2 review_required
-- 56 unit and integration tests pass across Python 3.10–3.13
+- 77 unit and integration tests pass across Python 3.10–3.13
 - sdist and wheel build cleanly
 - `twine check` passes
 
@@ -71,7 +71,7 @@ The current repo state has:
 - clear runtime-context correlation from guarded side effects back to the triggering tool call
 - a narrow enough public API to carry forward without surface resets
 - CI validation across Python 3.10–3.13
-- 5 concrete attack scenarios demonstrating real-world protection
+- 6 local attack scenarios demonstrating real-world protection
 
 ## Known Limits
 

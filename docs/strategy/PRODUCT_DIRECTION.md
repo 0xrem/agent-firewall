@@ -2,7 +2,7 @@
 
 ## One-Sentence Definition
 
-AgentFirewall is an inline runtime firewall for AI agents. It evaluates high-risk actions before side effects happen and returns a policy decision such as `allow`, `block`, `review`, or `log`.
+AgentFirewall is a runtime firewall for tool-using AI systems. It evaluates high-risk actions before side effects happen and returns a policy decision such as `allow`, `block`, `review`, or `log`.
 
 This document expands on the product position defined in `README.md`.
 
@@ -12,11 +12,19 @@ This file records phased architecture decisions, integration priorities, and seq
 
 Trial-run findings should be captured in `docs/strategy/TRIAL_RUN_LOG.md`.
 
+## Current Shipping Position
+
+`1.0.0` intentionally ships one supported runtime path: `agentfirewall.langgraph`.
+
+That narrow promise is deliberate.
+
+The broader product ambition is to keep one shared runtime firewall core that can later sit under multiple agent runtimes, MCP integrations, and lower-level tool-calling systems without resetting policy, approval, or audit semantics.
+
 ## Product Boundary
 
 AgentFirewall is not meant to be a generic static scanner, passive probe, or trust registry.
 
-Its core job is runtime enforcement at the moment an agent is about to do something sensitive, such as:
+Its core job is runtime enforcement at the moment a tool-using runtime is about to do something sensitive, such as:
 
 - dispatch a tool
 - execute a shell command
@@ -51,7 +59,7 @@ The long-term product should have five layers:
 
 1. A core policy engine that evaluates normalized runtime events.
 2. Enforcement hooks at prompt, tool, command, file, and network boundaries.
-3. Framework adapters for supported Python agent runtimes.
+3. Adapter interfaces for supported agent runtimes, MCP client/server paths, and lower-level tool-calling runtimes.
 4. Audit logging for blocked, reviewed, and high-risk actions.
 5. Reusable policy packs for default, strict, and custom deployment modes.
 
@@ -81,6 +89,14 @@ Custom runtimes should also be able to integrate AgentFirewall directly at execu
 
 This makes the product usable even when a framework-level `wrap_agent(...)` adapter does not exist yet.
 
+## Multi-Runtime Planning Rule
+
+Expand by standardizing execution surfaces, not by cloning framework-specific policy logic.
+
+Every supported adapter should translate runtime behavior into the same normalized event model and reuse the same approval, audit, and policy-pack semantics.
+
+Introduce a new event kind only when a genuinely new execution surface appears, not because a framework exposes a different API shape.
+
 ## Product Route
 
 ### Phase 1: In-Process Python SDK
@@ -95,7 +111,7 @@ Why this comes first:
 
 ### Phase 2: Framework Adapters
 
-Add adapters for selected Python agent runtimes such as LangGraph, OpenAI Agents, and MCP-oriented Python runtimes.
+Add adapters for selected runtimes and protocols such as LangGraph, additional tool-calling agent runtimes, and MCP-oriented client/server paths.
 
 Goal:
 
