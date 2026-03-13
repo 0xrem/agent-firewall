@@ -1,6 +1,10 @@
 import importlib.util
 import unittest
 
+from agentfirewall.evals import (
+    require_eval_trace,
+    require_named_eval_result,
+)
 from agentfirewall.integrations import (
     AdapterCapability,
     AdapterSupportLevel,
@@ -16,6 +20,7 @@ from agentfirewall.integrations import (
     run_official_adapter_eval_suite,
     validate_eval_summary,
     validate_official_adapter_conformance,
+    validate_official_adapter_eval_expectations,
 )
 from agentfirewall.runtime_context import (
     REQUIRED_RUNTIME_CONTEXT_FIELDS,
@@ -44,6 +49,7 @@ class AdapterContractTests(unittest.TestCase):
         self.assertEqual(len(inventory), 1)
         self.assertEqual(inventory[0]["name"], "langgraph")
         self.assertTrue(inventory[0]["has_eval_suite"])
+        self.assertTrue(inventory[0]["has_eval_expectations"])
         self.assertEqual(
             inventory[0]["eval_runner"],
             "agentfirewall.evals:run_langgraph_eval_suite",
@@ -148,6 +154,11 @@ class LangGraphConformanceTests(unittest.TestCase):
 
         self.assertTrue(report.ok, msg=report.to_dict())
 
+    def test_official_adapter_registry_can_validate_langgraph_eval_expectations(self) -> None:
+        report = validate_official_adapter_eval_expectations("langgraph")
+
+        self.assertTrue(report.ok, msg=report.to_dict())
+
     def test_langgraph_eval_suite_still_passes_under_adapter_contract(self) -> None:
         from agentfirewall.evals import run_langgraph_eval_suite
 
@@ -169,6 +180,11 @@ class LangGraphConformanceTests(unittest.TestCase):
 
         self.assertEqual(adapter.spec, get_langgraph_adapter_spec())
         self.assertTrue(adapter.has_eval_suite())
+        self.assertTrue(adapter.has_eval_expectations())
+        self.assertEqual(
+            adapter.resolve_eval_case_alias("log_only_workflow"),
+            "log_only_shell_then_blocked_http",
+        )
 
     def test_langgraph_side_effect_traces_include_required_runtime_context(self) -> None:
         from agentfirewall.evals import run_langgraph_eval_suite
@@ -194,38 +210,40 @@ class LangGraphConformanceTests(unittest.TestCase):
                 )
 
     def test_langgraph_eval_trace_includes_event_operation_for_file_access(self) -> None:
-        from agentfirewall.evals import run_langgraph_eval_suite
-
-        summary = run_langgraph_eval_suite().to_dict()
-        write_case = next(
-            result for result in summary["results"]
-            if result["name"] == "guarded_file_write_allows_safe_path"
+        summary = run_official_adapter_eval_suite("langgraph").to_dict()
+        adapter = get_official_adapter("langgraph")
+        write_case = require_named_eval_result(
+            summary,
+            adapter.eval_expectations,
+            "safe_file_write",
         )
-        file_trace = next(
-            item for item in write_case["audit_trace"]
-            if item["event_kind"] == "file_access"
+        file_trace = require_eval_trace(
+            write_case,
+            event_kind="file_access",
+            event_operation="write",
         )
 
         self.assertEqual(file_trace["event_operation"], "write")
 
     def test_langgraph_review_and_log_only_semantics_match_contract(self) -> None:
-        from agentfirewall.evals import run_langgraph_eval_suite
-
         spec = get_langgraph_adapter_spec()
-        summary = run_langgraph_eval_suite().to_dict()
+        summary = run_official_adapter_eval_suite("langgraph").to_dict()
+        adapter = get_official_adapter("langgraph")
 
         if spec.supports(AdapterCapability.REVIEW_SEMANTICS):
-            review_case = next(
-                result for result in summary["results"]
-                if result["name"] == "shell_tool_review_without_handler"
+            review_case = require_named_eval_result(
+                summary,
+                adapter.eval_expectations,
+                "review_required_tool",
             )
             self.assertEqual(review_case["status"], "review_required")
             self.assertEqual(review_case["observed_final_action"], "review")
 
         if spec.supports(AdapterCapability.LOG_ONLY_SEMANTICS):
-            log_only_case = next(
-                result for result in summary["results"]
-                if result["name"] == "log_only_shell_then_blocked_http"
+            log_only_case = require_named_eval_result(
+                summary,
+                adapter.eval_expectations,
+                "log_only_workflow",
             )
             self.assertEqual(log_only_case["status"], "completed")
             self.assertEqual(log_only_case["observed_final_action"], "log")

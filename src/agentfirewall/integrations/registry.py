@@ -7,6 +7,11 @@ from importlib import import_module
 from importlib.resources.abc import Traversable
 from typing import Any
 
+from ..evals.contracts import (
+    EvalExpectationReport,
+    EvalSuiteExpectations,
+    validate_eval_summary_against_expectations,
+)
 from .conformance import ConformanceReport, validate_eval_summary
 from .contracts import RuntimeAdapterSpec, capability_matrix_row
 from .langgraph import get_langgraph_adapter_spec
@@ -18,6 +23,7 @@ class OfficialAdapterDefinition:
 
     spec: RuntimeAdapterSpec
     eval_runner: str = ""
+    eval_expectations: EvalSuiteExpectations | None = None
 
     @property
     def name(self) -> str:
@@ -25,6 +31,9 @@ class OfficialAdapterDefinition:
 
     def has_eval_suite(self) -> bool:
         return bool(self.eval_runner)
+
+    def has_eval_expectations(self) -> bool:
+        return self.eval_expectations is not None
 
     def run_eval_suite(
         self,
@@ -54,6 +63,33 @@ class OfficialAdapterDefinition:
         summary = self.run_eval_suite(path=path)
         return validate_eval_summary(summary.to_dict(), self.spec)
 
+    def validate_eval_expectations(
+        self,
+        *,
+        path: str | Traversable | None = None,
+    ) -> EvalExpectationReport:
+        """Run the packaged eval suite and validate the release-gate expectations."""
+
+        if self.eval_expectations is None:
+            raise ValueError(
+                f"Official adapter {self.name!r} does not declare eval expectations."
+            )
+
+        summary = self.run_eval_suite(path=path)
+        return validate_eval_summary_against_expectations(
+            summary.to_dict(),
+            self.eval_expectations,
+        )
+
+    def resolve_eval_case_alias(self, alias: str) -> str:
+        """Return the concrete eval-case name for one registered alias."""
+
+        if self.eval_expectations is None:
+            raise ValueError(
+                f"Official adapter {self.name!r} does not declare eval expectations."
+            )
+        return self.eval_expectations.case_name(alias)
+
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-friendly registry record for one official adapter."""
 
@@ -61,9 +97,12 @@ class OfficialAdapterDefinition:
             "name": self.name,
             "spec": self.spec.to_dict(),
             "has_eval_suite": self.has_eval_suite(),
+            "has_eval_expectations": self.has_eval_expectations(),
         }
         if self.eval_runner:
             payload["eval_runner"] = self.eval_runner
+        if self.eval_expectations is not None:
+            payload["eval_expectations"] = self.eval_expectations.to_dict()
         return payload
 
 
@@ -71,6 +110,30 @@ _OFFICIAL_ADAPTERS: dict[str, OfficialAdapterDefinition] = {
     "langgraph": OfficialAdapterDefinition(
         spec=get_langgraph_adapter_spec(),
         eval_runner="agentfirewall.evals:run_langgraph_eval_suite",
+        eval_expectations=EvalSuiteExpectations(
+            total=19,
+            status_counts={
+                "completed": 9,
+                "blocked": 8,
+                "review_required": 2,
+            },
+            task_counts={
+                "incident_triage": 2,
+                "secret_access": 2,
+                "credential_injection": 1,
+                "safe_file_write": 1,
+            },
+            named_cases={
+                "safe_status_tool": "safe_status_tool",
+                "review_required_tool": "shell_tool_review_without_handler",
+                "safe_file_write": "guarded_file_write_allows_safe_path",
+                "workflow_shell_then_http": "workflow_shell_approved_then_trusted_http",
+                "workflow_shell_then_file_then_http": (
+                    "workflow_shell_approved_then_safe_file_then_trusted_http"
+                ),
+                "log_only_workflow": "log_only_shell_then_blocked_http",
+            },
+        ),
     ),
 }
 
@@ -135,3 +198,13 @@ def validate_official_adapter_conformance(
     """Run packaged eval evidence and validate it against the adapter contract."""
 
     return get_official_adapter(name).validate_conformance(path=path)
+
+
+def validate_official_adapter_eval_expectations(
+    name: str,
+    *,
+    path: str | Traversable | None = None,
+) -> EvalExpectationReport:
+    """Run packaged eval evidence and validate the adapter's release-gate expectations."""
+
+    return get_official_adapter(name).validate_eval_expectations(path=path)

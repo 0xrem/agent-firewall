@@ -1,6 +1,16 @@
 import importlib.util
 import unittest
 
+from agentfirewall.evals import (
+    require_eval_trace,
+    require_named_eval_result,
+)
+from agentfirewall.integrations import (
+    get_official_adapter,
+    run_official_adapter_eval_suite,
+    validate_official_adapter_eval_expectations,
+)
+
 
 LANGGRAPH_AVAILABLE = bool(importlib.util.find_spec("langchain")) and bool(
     importlib.util.find_spec("langgraph")
@@ -10,58 +20,55 @@ LANGGRAPH_AVAILABLE = bool(importlib.util.find_spec("langchain")) and bool(
 @unittest.skipUnless(LANGGRAPH_AVAILABLE, "LangGraph optional dependencies are not installed.")
 class LangGraphEvalTests(unittest.TestCase):
     def test_default_langgraph_eval_suite_passes(self) -> None:
-        from agentfirewall.evals import run_langgraph_eval_suite
-
-        summary = run_langgraph_eval_suite()
+        summary = run_official_adapter_eval_suite("langgraph")
+        report = validate_official_adapter_eval_expectations("langgraph")
 
         self.assertEqual(summary.failed, 0)
         self.assertEqual(summary.total, 19)
-        self.assertEqual(summary.status_counts["completed"], 9)
-        self.assertEqual(summary.status_counts["blocked"], 8)
-        self.assertEqual(summary.status_counts["review_required"], 2)
-        self.assertEqual(summary.task_counts["incident_triage"], 2)
-        self.assertEqual(summary.task_counts["secret_access"], 2)
-        self.assertEqual(summary.task_counts["credential_injection"], 1)
-        self.assertEqual(summary.task_counts["safe_file_write"], 1)
+        self.assertTrue(report.ok, msg=report.to_dict())
 
     def test_langgraph_eval_summary_is_json_friendly(self) -> None:
-        from agentfirewall.evals import run_langgraph_eval_suite
-
-        summary = run_langgraph_eval_suite()
+        summary = run_official_adapter_eval_suite("langgraph")
         payload = summary.to_dict()
+        adapter = get_official_adapter("langgraph")
+        first_result = require_named_eval_result(
+            payload,
+            adapter.eval_expectations,
+            "safe_status_tool",
+        )
 
         self.assertEqual(payload["failed"], 0)
         self.assertEqual(payload["unexpected_allows"], 0)
         self.assertEqual(payload["unexpected_blocks"], 0)
-        self.assertEqual(payload["results"][0]["name"], "safe_status_tool")
-        self.assertEqual(payload["results"][0]["task"], "operations_check")
-        self.assertIn("workflow_goal", payload["results"][0])
+        self.assertEqual(first_result["name"], "safe_status_tool")
+        self.assertEqual(first_result["task"], "operations_check")
+        self.assertIn("workflow_goal", first_result)
         self.assertIn("task_counts", payload)
-        self.assertIn("observed_event_kinds", payload["results"][0])
-        self.assertIn("observed_actions", payload["results"][0])
-        self.assertIn("audit_summary", payload["results"][0])
-        self.assertIn("audit_trace", payload["results"][0])
-        self.assertIn("event_kind_counts", payload["results"][0]["audit_summary"])
-        self.assertIn("source_counts", payload["results"][0]["audit_summary"])
-        self.assertIn("tool_name_counts", payload["results"][0]["audit_summary"])
-        self.assertIn("event_operation", payload["results"][0]["audit_trace"][0])
+        self.assertIn("observed_event_kinds", first_result)
+        self.assertIn("observed_actions", first_result)
+        self.assertIn("audit_summary", first_result)
+        self.assertIn("audit_trace", first_result)
+        self.assertIn("event_kind_counts", first_result["audit_summary"])
+        self.assertIn("source_counts", first_result["audit_summary"])
+        self.assertIn("tool_name_counts", first_result["audit_summary"])
+        self.assertIn("event_operation", first_result["audit_trace"][0])
 
     def test_langgraph_eval_trace_links_side_effects_to_tool_context(self) -> None:
-        from agentfirewall.evals import run_langgraph_eval_suite
-
-        summary = run_langgraph_eval_suite()
-        workflow_result = next(
-            result for result in summary.to_dict()["results"]
-            if result["name"] == "workflow_shell_approved_then_trusted_http"
+        summary = run_official_adapter_eval_suite("langgraph")
+        adapter = get_official_adapter("langgraph")
+        workflow_result = require_named_eval_result(
+            summary.to_dict(),
+            adapter.eval_expectations,
+            "workflow_shell_then_http",
         )
 
-        command_trace = next(
-            item for item in workflow_result["audit_trace"]
-            if item["event_kind"] == "command"
+        command_trace = require_eval_trace(
+            workflow_result,
+            event_kind="command",
         )
-        http_trace = next(
-            item for item in workflow_result["audit_trace"]
-            if item["event_kind"] == "http_request"
+        http_trace = require_eval_trace(
+            workflow_result,
+            event_kind="http_request",
         )
 
         self.assertEqual(command_trace["runtime_context"]["tool_name"], "shell")
@@ -76,12 +83,12 @@ class LangGraphEvalTests(unittest.TestCase):
         )
 
     def test_langgraph_eval_log_only_workflow_records_original_actions(self) -> None:
-        from agentfirewall.evals import run_langgraph_eval_suite
-
-        summary = run_langgraph_eval_suite()
-        workflow_result = next(
-            result for result in summary.to_dict()["results"]
-            if result["name"] == "log_only_shell_then_blocked_http"
+        summary = run_official_adapter_eval_suite("langgraph")
+        adapter = get_official_adapter("langgraph")
+        workflow_result = require_named_eval_result(
+            summary.to_dict(),
+            adapter.eval_expectations,
+            "log_only_workflow",
         )
 
         self.assertEqual(workflow_result["observed_final_action"], "log")
@@ -94,12 +101,12 @@ class LangGraphEvalTests(unittest.TestCase):
         self.assertIn("block", original_actions)
 
     def test_langgraph_eval_workflow_sequences_match_expected_trace(self) -> None:
-        from agentfirewall.evals import run_langgraph_eval_suite
-
-        summary = run_langgraph_eval_suite()
-        workflow_result = next(
-            result for result in summary.to_dict()["results"]
-            if result["name"] == "workflow_shell_approved_then_safe_file_then_trusted_http"
+        summary = run_official_adapter_eval_suite("langgraph")
+        adapter = get_official_adapter("langgraph")
+        workflow_result = require_named_eval_result(
+            summary.to_dict(),
+            adapter.eval_expectations,
+            "workflow_shell_then_file_then_http",
         )
 
         self.assertEqual(

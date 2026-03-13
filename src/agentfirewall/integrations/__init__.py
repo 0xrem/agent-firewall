@@ -31,6 +31,7 @@ from .registry import (
     list_official_adapter_specs,
     run_official_adapter_eval_suite,
     validate_official_adapter_conformance,
+    validate_official_adapter_eval_expectations,
 )
 
 __all__ = [
@@ -58,4 +59,5 @@ __all__ = [
     "run_official_adapter_eval_suite",
     "validate_eval_summary",
     "validate_official_adapter_conformance",
+    "validate_official_adapter_eval_expectations",
 ]
