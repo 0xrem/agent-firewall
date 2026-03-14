@@ -455,3 +455,5 @@ The correct next move is:
 - keep the evidence local and repeatable
 
 That is the fastest path that still protects the main product goal.
+
+For issue-sized execution slices, see [`ISSUE_BACKLOG_1_3.md`](./ISSUE_BACKLOG_1_3.md).

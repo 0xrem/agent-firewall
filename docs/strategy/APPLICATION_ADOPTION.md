@@ -378,3 +378,5 @@ The right path into wider application adoption is:
 - earn broader trust through evidence instead of claims
 
 That keeps application growth aligned with the main product goal.
+
+For issue-sized work items that connect this strategy to the next milestone, see [`ISSUE_BACKLOG_1_3.md`](./ISSUE_BACKLOG_1_3.md).
