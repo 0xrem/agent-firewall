@@ -341,6 +341,199 @@ class LangGraphFirewallMiddleware(AgentMiddleware):
             return await handler(request)
 
 
+@dataclass(frozen=True, slots=True)
+class LangGraphGuardedToolBuilder:
+    """Build the official guarded tool surfaces for the LangGraph adapter."""
+
+    firewall: AgentFirewall
+
+    def tool_decorator(self, *, name: str, description: str) -> Any:
+        return _langgraph_tool_decorator(name=name, description=description)
+
+    def shell_event_source(self, source: str) -> str:
+        return f"{source}.command"
+
+    def http_event_source(self, source: str) -> str:
+        return f"{source}.request"
+
+    def file_event_source(self, source: str) -> str:
+        return f"{source}.file"
+
+    def create_shell_tool(
+        self,
+        *,
+        name: str = "shell",
+        description: str = (
+            "Run a shell command through AgentFirewall-guarded subprocess execution."
+        ),
+        source: str = "langgraph.shell",
+        runner: Callable[..., Any] | None = None,
+        shell: bool = True,
+        run_kwargs: Mapping[str, Any] | None = None,
+        encoding: str = "utf-8",
+        strip_output: bool = True,
+    ) -> Any:
+        decorator = self.tool_decorator(name=name, description=description)
+        runner_kwargs = {"capture_output": True, "text": True, "check": False}
+        if run_kwargs is not None:
+            runner_kwargs.update(dict(run_kwargs))
+
+        guarded_runner_kwargs: dict[str, Any] = {
+            "firewall": self.firewall,
+            "source": self.shell_event_source(source),
+        }
+        if runner is not None:
+            guarded_runner_kwargs["runner"] = runner
+        guarded_runner = GuardedSubprocessRunner(**guarded_runner_kwargs)
+
+        @decorator
+        def guarded_shell(command: str, cwd: str = "") -> str:
+            """Run a shell command through AgentFirewall-guarded subprocess execution."""
+
+            invocation_kwargs = dict(runner_kwargs)
+            if cwd:
+                invocation_kwargs["cwd"] = cwd
+            result = guarded_runner.run(command, shell=shell, **invocation_kwargs)
+            return _format_subprocess_result(
+                result,
+                encoding=encoding,
+                strip_output=strip_output,
+            )
+
+        return guarded_shell
+
+    def create_http_tool(
+        self,
+        *,
+        name: str = "http_request",
+        description: str = (
+            "Send an outbound HTTP request through AgentFirewall-guarded network enforcement."
+        ),
+        source: str = "langgraph.http",
+        opener: Callable[..., Any] | None = None,
+        request_kwargs: Mapping[str, Any] | None = None,
+        encoding: str = "utf-8",
+        max_chars: int | None = 4096,
+        strip_output: bool = False,
+    ) -> Any:
+        decorator = self.tool_decorator(name=name, description=description)
+        client_kwargs: dict[str, Any] = {
+            "firewall": self.firewall,
+            "source": self.http_event_source(source),
+        }
+        if opener is not None:
+            client_kwargs["opener"] = opener
+        guarded_client = GuardedHttpClient(**client_kwargs)
+        resolved_request_kwargs = dict(request_kwargs or {})
+
+        @decorator
+        def guarded_http_request(url: str, method: str = "GET") -> str:
+            """Send an outbound HTTP request through AgentFirewall-guarded network enforcement."""
+
+            response = guarded_client.request(
+                url,
+                method=method,
+                **dict(resolved_request_kwargs),
+            )
+            return _read_text_resource(
+                response,
+                encoding=encoding,
+                max_chars=max_chars,
+                strip_output=strip_output,
+            )
+
+        return guarded_http_request
+
+    def create_file_reader_tool(
+        self,
+        *,
+        name: str = "read_file",
+        description: str = (
+            "Read a local file through AgentFirewall-guarded filesystem enforcement."
+        ),
+        source: str = "langgraph.file",
+        opener: Callable[..., Any] | None = None,
+        read_kwargs: Mapping[str, Any] | None = None,
+        encoding: str = "utf-8",
+        max_chars: int | None = 4096,
+        strip_output: bool = False,
+    ) -> Any:
+        decorator = self.tool_decorator(name=name, description=description)
+        access_kwargs: dict[str, Any] = {
+            "firewall": self.firewall,
+            "source": self.file_event_source(source),
+        }
+        if opener is not None:
+            access_kwargs["opener"] = opener
+        file_access = GuardedFileAccess(**access_kwargs)
+
+        @decorator
+        def guarded_file_reader(path: str) -> str:
+            """Read a local file through AgentFirewall-guarded filesystem enforcement."""
+
+            open_kwargs = dict(read_kwargs or {})
+            if "encoding" not in open_kwargs:
+                open_kwargs["encoding"] = encoding
+            handle = file_access.open(path, "r", **open_kwargs)
+            return _read_text_resource(
+                handle,
+                encoding=encoding,
+                max_chars=max_chars,
+                strip_output=strip_output,
+            )
+
+        return guarded_file_reader
+
+    def create_file_writer_tool(
+        self,
+        *,
+        name: str = "write_file",
+        description: str = (
+            "Write content to a local file through AgentFirewall-guarded filesystem enforcement."
+        ),
+        source: str = "langgraph.file",
+        writer: Callable[..., Any] | None = None,
+        encoding: str = "utf-8",
+        write_kwargs: Mapping[str, Any] | None = None,
+    ) -> Any:
+        decorator = self.tool_decorator(name=name, description=description)
+        file_source = self.file_event_source(source)
+        file_access = None
+        if writer is None:
+            file_access = GuardedFileAccess(
+                firewall=self.firewall,
+                source=file_source,
+            )
+
+        @decorator
+        def guarded_file_writer(path: str, content: str) -> str:
+            """Write content to a local file through AgentFirewall-guarded filesystem enforcement."""
+
+            if writer is None:
+                assert file_access is not None
+                open_kwargs = dict(write_kwargs or {})
+                if "encoding" not in open_kwargs:
+                    open_kwargs["encoding"] = encoding
+                handle = file_access.open(path, "w", **open_kwargs)
+                if hasattr(handle, "write"):
+                    handle.write(content)
+                    if hasattr(handle, "close"):
+                        handle.close()
+            else:
+                event = attach_runtime_context(
+                    EventContext.file_access(
+                        path,
+                        mode="write",
+                        source=file_source,
+                    )
+                )
+                self.firewall.enforce(event)
+                writer(path, content, **dict(write_kwargs or {}))
+            return f"wrote {len(content)} chars to {path}"
+
+        return guarded_file_writer
+
+
 def create_firewalled_langgraph_agent(
     *,
     model: Any,
@@ -403,34 +596,16 @@ def create_guarded_langgraph_shell_tool(
 ) -> Any:
     """Create a LangGraph tool that guards shell execution with AgentFirewall."""
 
-    decorator = _langgraph_tool_decorator(name=name, description=description)
-    runner_kwargs = {"capture_output": True, "text": True, "check": False}
-    if run_kwargs is not None:
-        runner_kwargs.update(dict(run_kwargs))
-
-    guarded_runner_kwargs: dict[str, Any] = {
-        "firewall": firewall,
-        "source": f"{source}.command",
-    }
-    if runner is not None:
-        guarded_runner_kwargs["runner"] = runner
-    guarded_runner = GuardedSubprocessRunner(**guarded_runner_kwargs)
-
-    @decorator
-    def guarded_shell(command: str, cwd: str = "") -> str:
-        """Run a shell command through AgentFirewall-guarded subprocess execution."""
-
-        invocation_kwargs = dict(runner_kwargs)
-        if cwd:
-            invocation_kwargs["cwd"] = cwd
-        result = guarded_runner.run(command, shell=shell, **invocation_kwargs)
-        return _format_subprocess_result(
-            result,
-            encoding=encoding,
-            strip_output=strip_output,
-        )
-
-    return guarded_shell
+    return LangGraphGuardedToolBuilder(firewall=firewall).create_shell_tool(
+        name=name,
+        description=description,
+        source=source,
+        runner=runner,
+        shell=shell,
+        run_kwargs=run_kwargs,
+        encoding=encoding,
+        strip_output=strip_output,
+    )
 
 
 def create_guarded_langgraph_http_tool(
@@ -449,33 +624,16 @@ def create_guarded_langgraph_http_tool(
 ) -> Any:
     """Create a LangGraph tool that guards outbound HTTP requests."""
 
-    decorator = _langgraph_tool_decorator(name=name, description=description)
-    client_kwargs: dict[str, Any] = {
-        "firewall": firewall,
-        "source": f"{source}.request",
-    }
-    if opener is not None:
-        client_kwargs["opener"] = opener
-    guarded_client = GuardedHttpClient(**client_kwargs)
-    resolved_request_kwargs = dict(request_kwargs or {})
-
-    @decorator
-    def guarded_http_request(url: str, method: str = "GET") -> str:
-        """Send an outbound HTTP request through AgentFirewall-guarded network enforcement."""
-
-        response = guarded_client.request(
-            url,
-            method=method,
-            **dict(resolved_request_kwargs),
-        )
-        return _read_text_resource(
-            response,
-            encoding=encoding,
-            max_chars=max_chars,
-            strip_output=strip_output,
-        )
-
-    return guarded_http_request
+    return LangGraphGuardedToolBuilder(firewall=firewall).create_http_tool(
+        name=name,
+        description=description,
+        source=source,
+        opener=opener,
+        request_kwargs=request_kwargs,
+        encoding=encoding,
+        max_chars=max_chars,
+        strip_output=strip_output,
+    )
 
 
 def create_guarded_langgraph_file_reader_tool(
@@ -494,31 +652,16 @@ def create_guarded_langgraph_file_reader_tool(
 ) -> Any:
     """Create a LangGraph tool that guards local file reads."""
 
-    decorator = _langgraph_tool_decorator(name=name, description=description)
-    access_kwargs: dict[str, Any] = {
-        "firewall": firewall,
-        "source": f"{source}.file",
-    }
-    if opener is not None:
-        access_kwargs["opener"] = opener
-    file_access = GuardedFileAccess(**access_kwargs)
-
-    @decorator
-    def guarded_file_reader(path: str) -> str:
-        """Read a local file through AgentFirewall-guarded filesystem enforcement."""
-
-        open_kwargs = dict(read_kwargs or {})
-        if "encoding" not in open_kwargs:
-            open_kwargs["encoding"] = encoding
-        handle = file_access.open(path, "r", **open_kwargs)
-        return _read_text_resource(
-            handle,
-            encoding=encoding,
-            max_chars=max_chars,
-            strip_output=strip_output,
-        )
-
-    return guarded_file_reader
+    return LangGraphGuardedToolBuilder(firewall=firewall).create_file_reader_tool(
+        name=name,
+        description=description,
+        source=source,
+        opener=opener,
+        read_kwargs=read_kwargs,
+        encoding=encoding,
+        max_chars=max_chars,
+        strip_output=strip_output,
+    )
 
 
 def create_guarded_langgraph_file_writer_tool(
@@ -539,36 +682,11 @@ def create_guarded_langgraph_file_writer_tool(
     Otherwise the tool writes through the default guarded file opener.
     """
 
-    decorator = _langgraph_tool_decorator(name=name, description=description)
-    file_source = f"{source}.file"
-    file_access = GuardedFileAccess(
-        firewall=firewall,
-        source=file_source,
+    return LangGraphGuardedToolBuilder(firewall=firewall).create_file_writer_tool(
+        name=name,
+        description=description,
+        source=source,
+        writer=writer,
+        encoding=encoding,
+        write_kwargs=write_kwargs,
     )
-
-    @decorator
-    def guarded_file_writer(path: str, content: str) -> str:
-        """Write content to a local file through AgentFirewall-guarded filesystem enforcement."""
-
-        if writer is None:
-            open_kwargs = dict(write_kwargs or {})
-            if "encoding" not in open_kwargs:
-                open_kwargs["encoding"] = encoding
-            handle = file_access.open(path, "w", **open_kwargs)
-            if hasattr(handle, "write"):
-                handle.write(content)
-                if hasattr(handle, "close"):
-                    handle.close()
-        else:
-            event = attach_runtime_context(
-                EventContext.file_access(
-                    path,
-                    mode="write",
-                    source=file_source,
-                )
-            )
-            firewall.enforce(event)
-            writer(path, content, **dict(write_kwargs or {}))
-        return f"wrote {len(content)} chars to {path}"
-
-    return guarded_file_writer

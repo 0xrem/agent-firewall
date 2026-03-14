@@ -106,11 +106,12 @@ The exact module names can change, but the responsibilities should look like thi
 - shared conformance fixtures and assertions
 - runtime translation helpers for prompt extraction, tool dispatch normalization, and tool-context propagation
 - shared adapter assembly helpers for resolving a firewall from either an existing object or supported high-level factory options
+- shared adapter surface builders for shell, file, and HTTP guarded tool setup
 
 ### Official Adapter
 
 - LangGraph adapter hooks
-- LangGraph guarded tools built on shared enforcers
+- LangGraph guarded tools built via an internal surface-builder layer on shared enforcers
 - LangGraph-specific examples, evals, and docs
 
 ## Adapter SPI Requirements
@@ -215,6 +216,7 @@ Definition of done:
 Ship:
 
 - LangGraph adapter aligned to the adapter contract
+- a shared internal surface-builder path for LangGraph shell, file, and HTTP tools
 - no change to current supported setup path
 - no change to current user-visible semantics for prompt, tool, shell, file, HTTP, review, or `log-only`
 
