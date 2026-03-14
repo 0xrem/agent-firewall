@@ -4,7 +4,7 @@
 
 AgentFirewall is no longer in the "is this real?" stage.
 
-It is now in the transition from `1.0` proof-of-value to `1.1` platform hardening.
+It is now in the transition from `1.1` platform hardening to `1.2` multi-runtime proof.
 
 That means:
 
@@ -43,7 +43,7 @@ This is already useful for:
 | Shared runtime firewall core | `strong` | Policy, approval, audit, enforcers, and runtime context are adapter-oriented |
 | Adapter contract and release evidence | `strong` | Capability matrix, conformance, eval expectations, and release gate are in-repo |
 | Lightweight non-LangGraph adoption | `partial` | Low-level wrappers exist, now with packaged eval evidence and preview-runtime inventory, but adoption still needs clearer onboarding |
-| Multi-runtime proof | `in_progress` | An experimental OpenAI Agents candidate exists, but the second official adapter is not shipped or release-gated yet |
+| Multi-runtime proof | `in_progress` | OpenAI Agents preview support now has helper surfaces, eval evidence, and runtime-support inventory, but the second official adapter is not shipped or release-gated yet |
 | Production trust across unknown workloads | `early` | False-positive pressure and real deployment evidence still need work |
 
 ## How Much Is Left
@@ -73,8 +73,8 @@ Need:
 
 Current status:
 
-- the OpenAI Agents SDK now has an experimental `function_tool-first` adapter skeleton
-- that candidate still needs packaged evals, helper surfaces, and release-gate evidence before it can count as the second official adapter
+- the OpenAI Agents SDK now has an experimental `function_tool-first` adapter path with packaged evals, helper surfaces, and runtime-support inventory
+- that candidate still needs release-gate evidence and an explicit promotion decision before it can count as the second official adapter
 
 Why it matters:
 
@@ -106,9 +106,9 @@ Why it matters:
 
 ## Execution Order From Here
 
-1. Finish `1.1` packaging and evidence so the adapter contract is undeniably real.
-2. Make the generic wrapper path easier to use without claiming a second official adapter yet.
-3. Turn the OpenAI Agents candidate path into a release-gated second-adapter decision, not just another experimental integration.
+1. Ship `1.1.0` with the adapter contract, preview runtime boundaries, and release evidence clearly documented.
+2. Turn the OpenAI Agents candidate path into a release-gated second-adapter decision, not just another experimental integration.
+3. Keep making the generic wrapper path easier to use without claiming a second official adapter yet.
 4. Expand evals and false-positive pressure around real workflows.
 5. Only then widen into MCP-oriented paths and broader deployment patterns.
 
@@ -125,10 +125,10 @@ The current `1.2` candidate is OpenAI Agents SDK on a deliberately narrow scope:
 
 What still has to happen before that candidate becomes official:
 
-- ship packaged local evals
-- ship OpenAI helper builders for shell, file, and HTTP
-- add release-gate expectations and runtime-support updates
-- document the supported and unsupported boundary in one place
+- add release-gate expectations that are strict enough for promotion
+- keep shrinking the unsupported boundary without overstating support
+- prove the preview path stays stable under continued regression pressure
+- make the official promotion decision explicit in docs and registry state
 
 Developers working on this track should start with [`OPENAI_AGENTS_ADAPTER_PLAN.md`](./OPENAI_AGENTS_ADAPTER_PLAN.md).
 

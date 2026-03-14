@@ -22,14 +22,16 @@ What already works:
 - function-tool interception before local tool execution
 - AgentFirewall `review` and `log-only` semantics on function tools
 - nested runtime-context propagation when a wrapped function tool calls shared enforcers like `GuardedSubprocessRunner`
+- official helper builders for shell, file, and HTTP
+- a grouped `create_runtime_bundle(...)` entrypoint on top of one firewall
+- packaged local evals and preview-runtime inventory export
 - local smoke tests using a fake model, with no network calls and no API key required
 
 What is not done yet:
 
-- packaged OpenAI eval suite
-- OpenAI-specific helper builders for shell, file, and HTTP
 - release-gate expectations
 - conformance and promotion decision for official-adapter status
+- final `1.2` documentation pass for the promotion/no-promotion decision
 
 ## Why OpenAI Agents
 
@@ -114,26 +116,39 @@ The OpenAI-specific layer should only handle runtime translation and context pro
 
 Ship:
 
+- packaged local OpenAI Agents eval cases
+- deterministic offline eval runner
+- documented expected action and event sequences
 
-**Status:** 🔄 In Progress - eval cases pending
+**Status:** ✅ Complete
 
 ### Tasks
 
-- [ ] Add OpenAI Agents eval cases to `agentfirewall/evals/cases/openai_agents_cases.json`
-- [ ] Implement `agentfirewall/evals/openai_agents.py` eval runner
-- [ ] Add `python -m agentfirewall.evals.openai_agents` entrypoint
-- [ ] Document eval results in `TRIAL_RUN_LOG.md`
+- [x] Add OpenAI Agents eval cases to `agentfirewall/evals/cases/openai_agents_cases.json`
+- [x] Implement `agentfirewall/evals/openai_agents.py` eval runner
+- [x] Add `python -m agentfirewall.evals.openai_agents` entrypoint
+- [x] Validate the packaged suite offline without `OPENAI_API_KEY`
 
 ## 2. Helper Surface Package
 
 Ship:
 
+- guarded shell helper
+- guarded HTTP helper
+- guarded file reader and writer helpers
+- grouped runtime bundle for low-friction setup
 
 Design constraints:
 
+- reuse shared enforcers instead of re-implementing policy logic
+- preserve AgentFirewall review/block semantics
+- stay within the function_tool-first support boundary
 
 Definition of done:
 
+- helper surfaces are regression-covered
+- nested side effects preserve runtime-context correlation
+- stable AgentFirewall-flavored SDK error messages are emitted for blocked/reviewed tool failures
 
 **Status:** ✅ Complete
 
@@ -142,17 +157,22 @@ Definition of done:
 
 Ship:
 - capability row updates once helper surfaces are real
+- runtime-support inventory updates for preview support
+- clear supported and unsupported boundary docs
 
 Important rule:
+- do not promote the adapter before release-gate expectations exist
 
 **Status:** 🔄 In Progress
 
 ### Tasks
 
 - [x] Create example scripts (`examples/openai_agents_demo.py`, `examples/openai_agents_quickstart.py`)
-- [ ] Add OpenAI Agents test file (`tests/test_openai_agents_integration.py`)
-- [ ] Update README with OpenAI Agents quickstart
-- [ ] Update `SUPPORTED_PATH.md` with OpenAI Agents preview status
+- [x] Add OpenAI Agents test file (`tests/test_openai_agents_integration.py`)
+- [x] Update README with OpenAI Agents quickstart
+- [x] Update `SUPPORTED_PATH.md` with OpenAI Agents preview status
+- [x] Export preview runtime support through `agentfirewall.runtime_support`
+- [ ] Add explicit release-gate expectations for promotion
 
 ## Completed Work
 
@@ -182,6 +202,7 @@ Important rule:
 - [x] Update README.md with OpenAI Agents examples
 - [x] Add quickstart example script
 - [x] Add demo example script
+- [x] Update README.zh-CN.md with OpenAI Agents preview notes
 - [x] Update pyproject.toml with openai-agents optional dependency
 - do not add OpenAI Agents to the official adapter registry until the evidence package is complete
 

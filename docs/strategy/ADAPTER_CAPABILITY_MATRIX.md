@@ -57,9 +57,11 @@ The source of truth for official adapter rows and registry-backed eval evidence 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `agentfirewall.langgraph` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` |
 
-## Current `1.0.0` Interpretation
+## Current `1.1.0` Interpretation
 
-For `1.0.0`, only the `agentfirewall.langgraph` row is part of the supported contract.
+For `1.1.0`, only the `agentfirewall.langgraph` row is part of the official supported adapter contract.
+
+Preview runtime support for `openai_agents` and `generic_wrappers` is exported separately through `agentfirewall.runtime_support`, but those rows are not yet part of the official adapter matrix.
 
 ## Planning Direction Only
 

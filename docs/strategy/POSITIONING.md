@@ -4,7 +4,7 @@
 
 AgentFirewall is a runtime firewall for tool-using AI systems. It stops dangerous side effects before they happen.
 
-`1.0.0` ships with LangGraph as the first official adapter.
+`1.1.0` ships with LangGraph as the first official adapter, plus documented preview runtime support for OpenAI Agents SDK and generic guarded wrappers.
 
 ## Who It Is For Right Now
 
@@ -60,19 +60,19 @@ What the product direction promises next:
 
 ### English
 
-AgentFirewall 1.0.0 is out.
+AgentFirewall 1.1.0 is out.
 
-If your LangGraph runtime can read files, send HTTP requests, or run shell commands, prompt safety is no longer just about better instructions. It is about execution control.
+If your runtime can read files, send HTTP requests, or run shell commands, prompt safety is no longer just about better instructions. It is about execution control.
 
-AgentFirewall adds `allow` / `block` / `review` / `log` decisions before dangerous side effects happen, with LangGraph as the first official adapter and a broader multi-runtime roadmap behind the same core.
+AgentFirewall adds `allow` / `block` / `review` / `log` decisions before dangerous side effects happen, with LangGraph as the first official adapter and documented preview runtime support showing how the same core expands without changing policy semantics.
 
 ### Chinese
 
-AgentFirewall 1.0.0 发布了。
+AgentFirewall 1.1.0 发布了。
 
-只要你的 LangGraph runtime 能读文件、发 HTTP、跑 shell，安全问题就不只是 prompt 写得好不好，而是执行边界有没有被真正守住。
+只要你的 runtime 能读文件、发 HTTP、跑 shell，安全问题就不只是 prompt 写得好不好，而是执行边界有没有被真正守住。
 
-AgentFirewall 会在危险副作用发生前做 `allow` / `block` / `review` / `log` 决策。现在先把 LangGraph 这条官方路径打透，后面再基于同一个内核扩到更多 runtime 和 MCP 场景。
+AgentFirewall 会在危险副作用发生前做 `allow` / `block` / `review` / `log` 决策。现在官方支持路径仍然是 LangGraph，同时已经把 OpenAI Agents 和 generic wrappers 这两条 preview runtime path 文档化，为后续第二个官方 adapter 铺路。
 
 ## Communication Guardrail
 

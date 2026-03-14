@@ -34,8 +34,7 @@
 
 If your runtime can call tools, prompt injection is no longer only a prompt-quality issue. It is an execution issue. AgentFirewall sits inline in the execution path and decides `allow`, `block`, `review`, or `log` **before** shell, file, network, or tool side effects happen.
 
-`1.0.0` ships the first official adapter for LangGraph. The long-term product direction is broader: keep one shared policy, approval, and audit core that can later sit under more agent runtimes, MCP integrations, and other tool-calling systems without changing the execution model.
-`1.1.0` adds preview support for the OpenAI Agents SDK as the second adapter candidate, demonstrating the reusability of the core firewall model across different tool-using runtimes.
+`1.1.0` keeps LangGraph as the first official adapter, and adds documented preview runtime support for the OpenAI Agents SDK and generic guarded wrappers. The long-term product direction is broader: keep one shared policy, approval, and audit core that can later sit under more agent runtimes, MCP integrations, and other tool-calling systems without changing the execution model.
 
 ## See It In Action
 
@@ -250,11 +249,12 @@ AgentFirewall is not a passive scanner beside the runtime. It sits **in the exec
 
 AgentFirewall is being built as one runtime firewall core with adapter-specific entrypoints, not as a separate security product for each framework.
 
-Current promise in `1.0.0`:
+Current promise in `1.1.0`:
 
-- one supported LangGraph adapter
-- official guarded shell, HTTP, file-read, and file-write tools
-- shared policy, approval, audit, and `log-only` behavior across that path
+- one official LangGraph adapter
+- documented preview runtime paths for OpenAI Agents SDK and generic guarded wrappers
+- official guarded shell, HTTP, file-read, and file-write tools on the LangGraph path
+- shared policy, approval, audit, conformance, and `log-only` behavior across the official path
 
 Expansion path:
 
@@ -366,30 +366,29 @@ Unexpected allows: 0  Unexpected blocks: 0
 
 ## Status
 
-`1.0.0` — first stable release, with LangGraph as the first official runtime adapter.
+`1.1.0` — current release, with LangGraph as the first official runtime adapter and preview runtime support for OpenAI Agents SDK and generic wrappers.
 
-Supported:
+Officially supported:
 - `agentfirewall` for the runtime-agnostic firewall core
 - `agentfirewall.langgraph` for the official LangGraph adapter and guarded tools
 - `agentfirewall.approval` for review handling paths
 - packaged LangGraph evals and workflow traces for repeatable local validation
 
+Preview runtime support:
+- `agentfirewall.openai_agents` for the function_tool-first OpenAI Agents candidate path
+- `agentfirewall.generic` for low-level guarded wrapper adoption on unsupported runtimes
+- `agentfirewall.runtime_support` for exporting the support inventory, capability matrix, and packaged evidence
+
 Next expansion focus:
 - keep adapter contracts, conformance, and release-gate evidence unified
-- mature the OpenAI Agents SDK candidate path without overstating support
-- expose runtime support inventory and evidence as site-friendly JSON
+- turn the OpenAI Agents SDK candidate path into a release-gated second-adapter decision
 - keep lowering adoption friction for non-LangGraph tool-calling runtimes
 
-`1.1.0` — adds preview support for OpenAI Agents SDK:
-
-- `agentfirewall.openai_agents` for the OpenAI Agents adapter (function_tool-first)
-- guarded shell, HTTP, file read/write tools for OpenAI Agents
-- same policy, approval, and audit semantics as LangGraph
-- example workflows and quickstart scripts
-
-Not in scope for 1.0.0:
+Not in scope for 1.1.0:
 
 - a second official runtime adapter
+- full OpenAI Agents feature coverage beyond the documented preview boundary
+- hosted OpenAI tools, MCP servers, or handoffs
 - a reviewer UI or centralized approval service
 - production-grade false-positive tuning beyond the default policy pack
 

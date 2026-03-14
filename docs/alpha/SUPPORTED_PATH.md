@@ -1,10 +1,10 @@
 # Supported Path
 
-This document defines the supported API surface for AgentFirewall `1.0.0`.
+This document defines the supported API surface for AgentFirewall `1.1.0`.
 
 It is narrower than the full package contents on purpose.
 
-## Supported Imports
+## Official Supported Imports
 
 Use top-level `agentfirewall` for the runtime-agnostic core:
 
@@ -33,7 +33,13 @@ Use `agentfirewall.approval` for the documented approval helper path:
 
 Lower-level helpers under modules such as `agentfirewall.enforcers`, `agentfirewall.audit`, `agentfirewall.policy_packs`, and `agentfirewall.integrations.langgraph` are still useful, but they are advanced usage rather than the primary supported entrypoint.
 
-## Experimental Candidate: OpenAI Agents SDK
+## Documented Preview Runtime Paths
+
+`1.1.0` also documents two preview runtime paths.
+
+They are deliberately real enough to evaluate locally, but they are not part of the official adapter contract yet.
+
+### Preview Runtime: OpenAI Agents SDK
 
 The repo contains an experimental OpenAI Agents SDK path under `agentfirewall.openai_agents`:
 
@@ -56,7 +62,7 @@ agent = create_agent(
 Current boundary:
 
 - function-tool-first only
-- local helper tools for shell, file, and HTTP exist in code
+- local helper tools and a `create_runtime_bundle(...)` entrypoint exist for shell, file, and HTTP
 - packaged local evals are available under `python -m agentfirewall.evals.openai_agents`
 - hosted tools, MCP servers, and handoffs are still out of scope
 - this path is not yet part of the official supported adapter contract
@@ -66,6 +72,37 @@ Install with:
 ```bash
 python -m pip install agentfirewall[openai-agents]
 ```
+
+### Preview Runtime: Generic Wrappers
+
+The repo also contains a low-level guarded wrapper path under `agentfirewall.generic`:
+
+```python
+from agentfirewall import FirewallConfig
+from agentfirewall.generic import create_generic_runtime_bundle
+
+bundle = create_generic_runtime_bundle(
+    config=FirewallConfig(name="generic-preview"),
+)
+```
+
+Current boundary:
+
+- intended for unsupported tool-calling runtimes
+- prompt inspection is not provided on this path
+- shell, file, and HTTP enforcement are available through shared guarded wrappers
+- packaged local evals are available under `python -m agentfirewall.evals.generic`
+- this path is preview runtime support, not an official adapter contract
+
+### Runtime Support Inventory
+
+For docs, dashboards, or sites, the repo also exposes a machine-readable support snapshot:
+
+```bash
+python -m agentfirewall.runtime_support --include-evidence
+```
+
+This exports the current official adapter inventory, preview runtime inventory, capability matrix, and packaged local evidence as JSON.
 
 ## Install
 
@@ -77,7 +114,7 @@ python -m pip install agentfirewall[langgraph]
 For local repo development:
 
 ```bash
-python -m pip install -e '.[langgraph]'
+python -m pip install -e '.[langgraph,openai-agents]'
 ```
 
 ## Minimal Quick Start
@@ -157,6 +194,9 @@ python examples/langgraph_quickstart.py
 python examples/langgraph_agent.py
 python examples/langgraph_trial_run.py
 python -m agentfirewall.evals.langgraph
+python -m agentfirewall.evals.generic
+python -m agentfirewall.evals.openai_agents
+python -m agentfirewall.runtime_support --include-evidence
 python -m pytest tests/ -v
 ```
 
@@ -176,11 +216,12 @@ python -m agentfirewall.runtime_support --include-evidence
 
 For `log-only` flows, trace entries preserve `decision_metadata.original_action` so a user can see whether a step would have been reviewed or blocked before turning on enforcement.
 
-The packaged eval suite covers 19 task-oriented local cases, and the local trial runner covers 10 local workflows built to look more like real user tasks instead of isolated tool calls.
+The packaged LangGraph eval suite covers 19 task-oriented local cases, the generic preview suite covers 7 local cases, and the OpenAI Agents preview suite covers 9 local cases.
 
 ## What This Contract Does Not Promise Yet
 
 - a built-in reviewer UI
 - a centralized approval service
 - a second officially supported runtime adapter
+- hosted OpenAI tools, MCP servers, or handoffs
 - production-ready false-positive tuning

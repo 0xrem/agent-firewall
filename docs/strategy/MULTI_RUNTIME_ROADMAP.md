@@ -6,7 +6,12 @@ Build one runtime firewall core that can protect tool-using AI systems across mu
 
 ## Current Shipping Position
 
-`1.0.0` ships one supported runtime path: LangGraph.
+`1.1.0` ships one official runtime path: LangGraph.
+
+It also documents preview runtime support for:
+
+- `openai_agents`
+- `generic_wrappers`
 
 This is deliberate.
 
@@ -123,6 +128,7 @@ This comes later because:
 - finalize adapter SPI
 - add adapter capability matrix
 - add conformance tests and example traces
+- document preview runtime support and runtime-support inventory
 
 Detailed execution plan:
 
