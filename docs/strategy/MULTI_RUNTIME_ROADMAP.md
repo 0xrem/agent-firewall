@@ -153,8 +153,13 @@ Detailed execution plan:
 
 ### 1.3
 
-- ship MCP-oriented client/server support on the shared core
-- document where MCP reuses existing event kinds and where it needs new ones
+- ship MCP-oriented preview client/server support on the shared core
+- introduce a shared `resource_access` surface instead of faking MCP resources as files or HTTP
+- keep MCP as preview support until the boundary and evidence are strong enough for later promotion
+
+Detailed execution plan:
+
+- see [`RELEASE_1_3_PLAN.md`](./RELEASE_1_3_PLAN.md)
 
 ### 1.4
 

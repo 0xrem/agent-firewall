@@ -107,8 +107,20 @@ Why it matters:
 1. Hold the `1.2.0` support contract steady across LangGraph and OpenAI Agents.
 2. Keep lowering adoption friction for unsupported runtimes through generic wrappers.
 3. Expand evals and false-positive pressure around realistic workflows.
-4. Widen into MCP-oriented paths only after the existing contract stays stable.
+4. Widen into MCP-oriented preview paths only after the existing contract stays stable.
 5. Explore broader deployment patterns after the event model and support boundary stop moving.
+
+## Next Milestone
+
+The next milestone should be `1.3` as the MCP preview and resource-surface release.
+
+That means:
+
+- MCP is important enough to become the next focused expansion track
+- MCP is still risky enough that it should stay preview, not official, in the first release
+- the main design job is to add one honest shared surface for resource reads without forking policy semantics
+
+Developers working on the next milestone should start with [`RELEASE_1_3_PLAN.md`](./RELEASE_1_3_PLAN.md).
 
 ## What `1.2.0` Actually Shipped
 
