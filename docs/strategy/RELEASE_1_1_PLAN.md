@@ -46,6 +46,28 @@ Do not make these part of `1.1`:
 4. A reusable conformance test kit.
 5. A LangGraph adapter refactor that passes the new contract without changing user-visible behavior.
 
+## Status Update (March 2026)
+
+Completed in `1.1`:
+
+- ✅ Adapter capability matrix documented in [`ADAPTER_CAPABILITY_MATRIX.md`](./ADAPTER_CAPABILITY_MATRIX.md)
+- ✅ OpenAI Agents SDK adapter plan documented in [`OPENAI_AGENTS_ADAPTER_PLAN.md`](./OPENAI_AGENTS_ADAPTER_PLAN.md)
+- ✅ OpenAI Agents SDK eval infrastructure created:
+  - `src/agentfirewall/evals/openai_agents.py` for eval runner
+  - `src/agentfirewall/evals/cases/openai_agents_cases.json` for eval cases
+  - CLI entrypoint: `python -m agentfirewall.evals.openai_agents`
+- ✅ OpenAI Agents SDK integration module created:
+  - `src/agentfirewall/integrations/openai_agents.py` for adapter implementation
+  - `src/agentfirewall/openai_agents.py` for public API surface
+- ✅ Preview support documented in [`SUPPORTED_PATH.md`](./SUPPORTED_PATH.md)
+
+Next steps for `1.2`:
+
+- Complete OpenAI Agents SDK adapter implementation
+- Run conformance tests across LangGraph and OpenAI Agents adapters
+- Validate policy pack behavior consistency across both adapters
+- Ship OpenAI Agents as official supported adapter in `1.2.0`
+
 ## Architecture Scope
 
 ### 1. Core Remains Runtime-Agnostic
