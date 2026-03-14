@@ -1,16 +1,22 @@
-"""Support-path inventory for official adapters and preview runtimes."""
+"""Support-path inventory and evidence export for runtime adapters."""
 
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 from enum import Enum
+import json
 from importlib import import_module
 from importlib.resources.abc import Traversable
+from pathlib import Path
+from typing import IO
 from typing import Any
+from datetime import datetime, timezone
 
 from .evals.contracts import (
     EvalExpectationReport,
     EvalSuiteExpectations,
+    find_eval_result,
     validate_eval_summary_against_expectations,
 )
 from .integrations.contracts import (
@@ -20,7 +26,13 @@ from .integrations.contracts import (
     capability_matrix_row,
     capability_set,
 )
-from .integrations.registry import list_official_adapters
+from .integrations.conformance import ConformanceReport, validate_eval_summary
+from .integrations.openai_agents import get_openai_agents_adapter_spec
+from .integrations.registry import (
+    export_official_adapter_inventory,
+    get_official_adapter,
+    list_official_adapters,
+)
 
 
 class RuntimeSupportKind(str, Enum):
@@ -84,6 +96,16 @@ class PreviewRuntimeDefinition:
             self.eval_expectations,
         )
 
+    def validate_conformance(
+        self,
+        *,
+        path: str | Traversable | None = None,
+    ) -> ConformanceReport:
+        """Validate packaged eval evidence against the preview runtime contract."""
+
+        summary = self.run_eval_suite(path=path)
+        return validate_eval_summary(summary.to_dict(), self.spec)
+
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-friendly representation of the preview runtime."""
 
@@ -125,6 +147,12 @@ def get_generic_preview_runtime_spec() -> RuntimeAdapterSpec:
     )
 
 
+def get_openai_agents_preview_runtime_spec() -> RuntimeAdapterSpec:
+    """Return the preview support contract for the OpenAI Agents SDK path."""
+
+    return get_openai_agents_adapter_spec()
+
+
 _PREVIEW_RUNTIMES: dict[str, PreviewRuntimeDefinition] = {
     "generic_wrappers": PreviewRuntimeDefinition(
         spec=get_generic_preview_runtime_spec(),
@@ -151,6 +179,40 @@ _PREVIEW_RUNTIMES: dict[str, PreviewRuntimeDefinition] = {
                 "blocked_sensitive_read": "guarded_file_blocks_sensitive_read",
                 "blocked_sensitive_write": "guarded_file_write_blocks_sensitive_path",
                 "log_only_workflow": "log_only_shell_then_blocked_http",
+            },
+        ),
+    ),
+    "openai_agents": PreviewRuntimeDefinition(
+        spec=get_openai_agents_preview_runtime_spec(),
+        eval_runner="agentfirewall.evals:run_openai_agents_eval_suite",
+        eval_expectations=EvalSuiteExpectations(
+            total=9,
+            status_counts={
+                "completed": 4,
+                "blocked": 3,
+                "review_required": 2,
+            },
+            task_counts={
+                "benign_calculation": 1,
+                "prompt_injection_attempt": 1,
+                "shell_access": 1,
+                "shell_access_approved": 1,
+                "dangerous_command_attempt": 1,
+                "sensitive_file_attempt": 1,
+                "untrusted_host_attempt": 1,
+                "log_only_demonstration": 1,
+                "nested_side_effects_correlation": 1,
+            },
+            named_cases={
+                "safe_function_tool": "safe_function_tool",
+                "prompt_review": "prompt_injection_review",
+                "shell_review": "shell_tool_review",
+                "approved_shell": "shell_tool_approved",
+                "blocked_command": "dangerous_command_blocked",
+                "blocked_sensitive_read": "sensitive_file_access_blocked",
+                "blocked_http": "untrusted_host_blocked",
+                "log_only_workflow": "log_only_workflow",
+                "nested_side_effects": "nested_side_effects",
             },
         ),
     ),
@@ -225,15 +287,267 @@ def validate_preview_runtime_eval_expectations(
     return get_preview_runtime(name).validate_eval_expectations(path=path)
 
 
+def validate_preview_runtime_conformance(
+    name: str,
+    *,
+    path: str | Traversable | None = None,
+) -> ConformanceReport:
+    """Validate packaged eval evidence against one preview runtime contract."""
+
+    return get_preview_runtime(name).validate_conformance(path=path)
+
+
+def _support_path_evidence_payload(
+    *,
+    name: str,
+    kind: RuntimeSupportKind,
+    summary_digest: dict[str, object] | None = None,
+    conformance: ConformanceReport | None = None,
+    eval_expectations: EvalExpectationReport | None = None,
+    error: Exception | None = None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "name": name,
+        "kind": kind.value,
+        "evaluated": error is None and summary_digest is not None,
+        "ok": None,
+    }
+    if summary_digest is not None:
+        payload["summary"] = summary_digest
+    if conformance is not None:
+        payload["conformance"] = conformance.to_dict()
+    if eval_expectations is not None:
+        payload["eval_expectations"] = eval_expectations.to_dict()
+    if error is not None:
+        payload["error"] = f"{type(error).__name__}: {error}"
+        return payload
+
+    if conformance is None and eval_expectations is None:
+        return payload
+
+    payload["ok"] = (
+        (conformance is None or conformance.ok)
+        and (eval_expectations is None or eval_expectations.ok)
+    )
+    return payload
+
+
+def _summary_digest(
+    summary_payload: dict[str, Any],
+    *,
+    expectations: EvalSuiteExpectations | None = None,
+) -> dict[str, object]:
+    digest: dict[str, object] = {}
+    for key in (
+        "total",
+        "passed",
+        "failed",
+        "unexpected_allows",
+        "unexpected_blocks",
+        "unexpected_reviews",
+        "status_counts",
+        "task_counts",
+        "final_action_counts",
+    ):
+        value = summary_payload.get(key)
+        if value is not None:
+            digest[key] = value
+
+    if expectations is not None and expectations.named_cases:
+        named_cases: dict[str, object] = {}
+        for alias, case_name in expectations.named_cases.items():
+            result = find_eval_result(summary_payload, case_name)
+            if result is None:
+                named_cases[alias] = {
+                    "name": case_name,
+                    "missing": True,
+                }
+                continue
+            named_cases[alias] = {
+                "name": case_name,
+                "status": result.get("status"),
+                "matched": result.get("matched"),
+                "observed_final_action": result.get("observed_final_action"),
+            }
+        digest["named_cases"] = named_cases
+    return digest
+
+
+def collect_official_adapter_evidence(
+    name: str,
+    *,
+    path: str | Traversable | None = None,
+) -> dict[str, object]:
+    """Collect eval evidence for one official runtime adapter."""
+
+    adapter = get_official_adapter(name)
+    try:
+        summary = adapter.run_eval_suite(path=path)
+        payload = summary.to_dict()
+        conformance = validate_eval_summary(payload, adapter.spec)
+        eval_expectations = None
+        if adapter.eval_expectations is not None:
+            eval_expectations = validate_eval_summary_against_expectations(
+                payload,
+                adapter.eval_expectations,
+            )
+        return _support_path_evidence_payload(
+            name=name,
+            kind=RuntimeSupportKind.OFFICIAL_ADAPTER,
+            summary_digest=_summary_digest(
+                payload,
+                expectations=adapter.eval_expectations,
+            ),
+            conformance=conformance,
+            eval_expectations=eval_expectations,
+        )
+    except Exception as exc:  # pragma: no cover - exercised in dependency-gated envs
+        return _support_path_evidence_payload(
+            name=name,
+            kind=RuntimeSupportKind.OFFICIAL_ADAPTER,
+            error=exc,
+        )
+
+
+def collect_preview_runtime_evidence(
+    name: str,
+    *,
+    path: str | Traversable | None = None,
+) -> dict[str, object]:
+    """Collect eval evidence for one preview runtime support path."""
+
+    runtime = get_preview_runtime(name)
+    try:
+        summary = runtime.run_eval_suite(path=path)
+        payload = summary.to_dict()
+        conformance = validate_eval_summary(payload, runtime.spec)
+        eval_expectations = None
+        if runtime.eval_expectations is not None:
+            eval_expectations = validate_eval_summary_against_expectations(
+                payload,
+                runtime.eval_expectations,
+            )
+        return _support_path_evidence_payload(
+            name=name,
+            kind=RuntimeSupportKind.PREVIEW_RUNTIME,
+            summary_digest=_summary_digest(
+                payload,
+                expectations=runtime.eval_expectations,
+            ),
+            conformance=conformance,
+            eval_expectations=eval_expectations,
+        )
+    except Exception as exc:  # pragma: no cover - exercised in dependency-gated envs
+        return _support_path_evidence_payload(
+            name=name,
+            kind=RuntimeSupportKind.PREVIEW_RUNTIME,
+            error=exc,
+        )
+
+
+def export_runtime_support_manifest(
+    *,
+    include_evidence: bool = False,
+) -> dict[str, object]:
+    """Export a JSON-friendly runtime support manifest for docs and websites."""
+
+    manifest: dict[str, object] = {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "official_adapters": export_official_adapter_inventory(),
+        "preview_runtimes": export_preview_runtime_inventory(),
+        "inventory": export_runtime_support_inventory(),
+        "matrix": export_runtime_support_matrix(),
+    }
+    if include_evidence:
+        manifest["evidence"] = {
+            "official_adapters": [
+                collect_official_adapter_evidence(adapter.name)
+                for adapter in list_official_adapters()
+            ],
+            "preview_runtimes": [
+                collect_preview_runtime_evidence(runtime.name)
+                for runtime in list_preview_runtimes()
+            ],
+        }
+    return manifest
+
+
+def write_runtime_support_manifest(
+    path: str | Path,
+    *,
+    include_evidence: bool = False,
+) -> Path:
+    """Write the runtime support manifest to one JSON file."""
+
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = export_runtime_support_manifest(include_evidence=include_evidence)
+    target.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return target
+
+
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Export AgentFirewall runtime support inventory and evidence as JSON."
+        )
+    )
+    parser.add_argument(
+        "--include-evidence",
+        action="store_true",
+        help="Run packaged eval suites and include conformance/evidence in the output.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Write the manifest to this JSON file instead of stdout.",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None, *, stdout: IO[str] | None = None) -> int:
+    """CLI entrypoint for exporting runtime support manifests."""
+
+    args = _parse_args(argv)
+    payload = export_runtime_support_manifest(include_evidence=args.include_evidence)
+    output = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    if args.output is not None:
+        write_runtime_support_manifest(
+            args.output,
+            include_evidence=args.include_evidence,
+        )
+        return 0
+    stream = stdout if stdout is not None else None
+    if stream is None:
+        print(output, end="")
+    else:
+        stream.write(output)
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover - exercised via CLI
+    raise SystemExit(main())
+
+
 __all__ = [
     "PreviewRuntimeDefinition",
     "RuntimeSupportKind",
+    "collect_official_adapter_evidence",
+    "collect_preview_runtime_evidence",
     "export_preview_runtime_inventory",
+    "export_runtime_support_manifest",
     "export_runtime_support_inventory",
     "export_runtime_support_matrix",
     "get_generic_preview_runtime_spec",
+    "get_openai_agents_preview_runtime_spec",
     "get_preview_runtime",
     "list_preview_runtimes",
     "run_preview_runtime_eval_suite",
+    "validate_preview_runtime_conformance",
     "validate_preview_runtime_eval_expectations",
+    "write_runtime_support_manifest",
 ]

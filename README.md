@@ -269,6 +269,9 @@ Contributors working on the next adapter candidate should start with [`docs/stra
 
 Need a non-LangGraph local preview today? Run `python examples/generic_tool_dispatcher.py` to see the low-level guarded wrapper path, or `python -m agentfirewall.evals.generic` to inspect its packaged local evidence. That path is now tracked separately as preview runtime support, but it is still not an official adapter contract.
 
+Need a machine-readable support snapshot for docs, dashboards, or the GitHub Pages site? Run `python -m agentfirewall.runtime_support --include-evidence` to export the current support matrix, packaged eval evidence, and conformance status as JSON.
+The latest checked-in snapshot currently lives at [`docs/assets/runtime-support-manifest.json`](./docs/assets/runtime-support-manifest.json).
+
 ## Built-in Rules
 
 7 rules ship ready to use with comprehensive pattern coverage. No configuration required.
@@ -342,7 +345,10 @@ python examples/attack_scenarios.py      # 6 attack scenarios with audit trails
 python examples/langgraph_quickstart.py  # local smoke test, no API key required
 python examples/langgraph_trial_run.py   # 10 multi-step workflow traces
 python -m agentfirewall.evals.langgraph  # 19 task-oriented eval cases
-python -m pytest tests/ -v               # 84 unit and integration tests
+python -m agentfirewall.evals.generic    # preview generic wrapper evidence
+python -m agentfirewall.evals.openai_agents  # preview OpenAI Agents evidence
+python -m agentfirewall.runtime_support --include-evidence  # JSON support manifest
+python -m pytest tests/ -v               # full local regression suite
 ```
 
 For OpenAI Agents preview support:
@@ -363,10 +369,16 @@ Unexpected allows: 0  Unexpected blocks: 0
 `1.0.0` — first stable release, with LangGraph as the first official runtime adapter.
 
 Supported:
-
+- `agentfirewall` for the runtime-agnostic firewall core
+- `agentfirewall.langgraph` for the official LangGraph adapter and guarded tools
+- `agentfirewall.approval` for review handling paths
+- packaged LangGraph evals and workflow traces for repeatable local validation
 
 Next expansion focus:
-
+- keep adapter contracts, conformance, and release-gate evidence unified
+- mature the OpenAI Agents SDK candidate path without overstating support
+- expose runtime support inventory and evidence as site-friendly JSON
+- keep lowering adoption friction for non-LangGraph tool-calling runtimes
 
 `1.1.0` — adds preview support for OpenAI Agents SDK:
 

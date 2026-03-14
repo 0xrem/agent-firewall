@@ -168,6 +168,12 @@ The per-scenario audit summaries also include:
 - `tool_name_counts`
 - task-oriented workflow labels in the emitted JSON payloads
 
+For docs, dashboards, or the GitHub Pages site, you can also export the current support inventory and packaged evidence as JSON:
+
+```bash
+python -m agentfirewall.runtime_support --include-evidence
+```
+
 For `log-only` flows, trace entries preserve `decision_metadata.original_action` so a user can see whether a step would have been reviewed or blocked before turning on enforcement.
 
 The packaged eval suite covers 19 task-oriented local cases, and the local trial runner covers 10 local workflows built to look more like real user tasks instead of isolated tool calls.

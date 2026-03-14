@@ -214,6 +214,9 @@ AgentFirewall 的方向不是为每个框架单独造一个安全产品，而是
 
 如果你今天还不在 LangGraph 上，也可以先跑 `python examples/generic_tool_dispatcher.py` 看低层 guarded wrapper 的本地预览路径，或者运行 `python -m agentfirewall.evals.generic` 看这条路径的本地证据。现在这条路径会单独作为 preview runtime support 被记录，但它还不是官方 adapter contract。
 
+如果你需要一份可以直接喂给文档、仪表盘或者 GitHub Pages 网站的机器可读支持快照，可以运行 `python -m agentfirewall.runtime_support --include-evidence`，导出当前的 support matrix、本地 eval 证据和 conformance 状态 JSON。
+当前仓库里已经提交了一份最新快照，位置在 [`docs/assets/runtime-support-manifest.json`](./docs/assets/runtime-support-manifest.json)。
+
 ## 内置规则
 
 7 条规则开箱即用，内置全面的模式覆盖，无需配置。
@@ -287,7 +290,10 @@ python examples/attack_scenarios.py      # 6 个攻击场景 + 审计追踪
 python examples/langgraph_quickstart.py  # 本地冒烟验证，不需要 API key
 python examples/langgraph_trial_run.py   # 10 个多步骤工作流追踪
 python -m agentfirewall.evals.langgraph  # 19 个面向任务的 eval case
-python -m pytest tests/ -v               # 84 个单元测试和集成测试
+python -m agentfirewall.evals.generic    # generic wrapper 预览路径证据
+python -m agentfirewall.evals.openai_agents  # OpenAI Agents 预览路径证据
+python -m agentfirewall.runtime_support --include-evidence  # JSON 支持清单
+python -m pytest tests/ -v               # 完整本地回归测试
 ```
 
 ```text
@@ -312,9 +318,10 @@ Eval 汇总: total=19, passed=19, failed=0
 下一阶段重点：
 
 - adapter 兼容性契约和一致性测试
-- 第二个官方 runtime adapter
+- 把 OpenAI Agents 候选路径继续做扎实，但不提前吹成官方支持
 - 基于共享内核的 MCP client/server 支持
 - 给还没有官方 adapter 的 runtime 提供通用 wrapper
+- 把 runtime support inventory 和 evidence 做成站点可直接展示的数据源
 
 1.0.0 暂不包含的：
 

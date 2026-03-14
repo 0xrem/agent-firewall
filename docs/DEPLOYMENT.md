@@ -36,6 +36,24 @@ git commit -m "feat: Update website"
 git push origin gh-pages
 ```
 
+## Runtime Support Data
+
+The core engine can now export a compact JSON manifest for docs and websites:
+
+```bash
+# Run from main branch
+python -m agentfirewall.runtime_support --include-evidence --output docs/assets/runtime-support-manifest.json
+```
+
+That file is a good source of truth for the website because it includes:
+
+- official adapter inventory
+- preview runtime inventory
+- capability matrix rows
+- packaged eval and conformance summaries
+
+If the website needs fresh product data, regenerate the manifest on `main` first, then sync it into `gh-pages` or fetch it from the checked-in asset.
+
 ## Automatic Deployment
 
 The GitHub Actions workflow automatically deploys when:

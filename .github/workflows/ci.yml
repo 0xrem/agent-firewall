@@ -86,3 +86,42 @@ jobs:
 
       - name: Run OpenAI Agents eval suite
         run: python -m agentfirewall.evals.openai_agents
+
+  runtime-support:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package with runtime extras and dev extras
+        run: python -m pip install --upgrade pip && python -m pip install -e '.[langgraph,openai-agents,dev]'
+
+      - name: Generate runtime support manifest
+        run: python -m agentfirewall.runtime_support --include-evidence --output runtime-support-manifest.json
+
+      - name: Validate runtime support manifest
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path("runtime-support-manifest.json").read_text(encoding="utf-8"))
+          assert payload["schema_version"] == 1
+          inventory = {item["name"]: item for item in payload["inventory"]}
+          assert {"langgraph", "generic_wrappers", "openai_agents"} <= set(inventory)
+          preview = {
+              item["name"]: item
+              for item in payload["evidence"]["preview_runtimes"]
+          }
+          assert preview["generic_wrappers"]["ok"] is True
+          assert preview["openai_agents"]["ok"] is True
+          official = {
+              item["name"]: item
+              for item in payload["evidence"]["official_adapters"]
+          }
+          assert official["langgraph"]["ok"] is True
+          PY
