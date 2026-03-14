@@ -98,6 +98,32 @@ _LEGACY_EXPORTS: dict[str, tuple[str, str, str]] = {
     ),
 }
 
+    _LEGACY_EXPORTS["create_firewalled_openai_agents_agent"] = (
+        ".integrations.openai_agents",
+        "create_firewalled_openai_agents_agent",
+        "agentfirewall.openai_agents.create_agent",
+    )
+    _LEGACY_EXPORTS["create_guarded_openai_agents_file_reader_tool"] = (
+        ".integrations.openai_agents",
+        "create_guarded_openai_agents_file_reader_tool",
+        "agentfirewall.openai_agents.create_file_reader_tool",
+    )
+    _LEGACY_EXPORTS["create_guarded_openai_agents_file_writer_tool"] = (
+        ".integrations.openai_agents",
+        "create_guarded_openai_agents_file_writer_tool",
+        "agentfirewall.openai_agents.create_file_writer_tool",
+    )
+    _LEGACY_EXPORTS["create_guarded_openai_agents_http_tool"] = (
+        ".integrations.openai_agents",
+        "create_guarded_openai_agents_http_tool",
+        "agentfirewall.openai_agents.create_http_tool",
+    )
+    _LEGACY_EXPORTS["create_guarded_openai_agents_shell_tool"] = (
+        ".integrations.openai_agents",
+        "create_guarded_openai_agents_shell_tool",
+        "agentfirewall.openai_agents.create_shell_tool",
+    )
+
 
 def __getattr__(name: str) -> Any:
     if name not in _LEGACY_EXPORTS:

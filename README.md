@@ -29,6 +29,7 @@
 If your runtime can call tools, prompt injection is no longer only a prompt-quality issue. It is an execution issue. AgentFirewall sits inline in the execution path and decides `allow`, `block`, `review`, or `log` **before** shell, file, network, or tool side effects happen.
 
 `1.0.0` ships the first official adapter for LangGraph. The long-term product direction is broader: keep one shared policy, approval, and audit core that can later sit under more agent runtimes, MCP integrations, and other tool-calling systems without changing the execution model.
+`1.1.0` adds preview support for the OpenAI Agents SDK as the second adapter candidate, demonstrating the reusability of the core firewall model across different tool-using runtimes.
 
 ## See It In Action
 
@@ -74,6 +75,18 @@ From a repository checkout, the fastest local smoke test without an API key is:
 python examples/langgraph_quickstart.py
 ```
 
+For OpenAI Agents SDK support:
+
+```bash
+pip install agentfirewall[openai-agents]
+```
+
+Quick smoke test for OpenAI Agents:
+
+```bash
+python examples/openai_agents_quickstart.py
+```
+
 ## Quickstart
 
 The snippet below assumes you already have a LangGraph-compatible `model`. If you want a zero-setup local run first, use the quickstart example above.
@@ -103,6 +116,42 @@ agent = create_agent(
         create_file_writer_tool(firewall=firewall),
     ],
     firewall=firewall,
+)
+```
+
+For OpenAI Agents SDK:
+
+```python
+from agentfirewall import FirewallConfig, create_firewall, ConsoleAuditSink
+from agentfirewall.approval import TerminalApprovalHandler
+from agentfirewall.openai_agents import (
+  create_agent, create_shell_tool, create_http_tool,
+  create_file_reader_tool, create_file_writer_tool,
+)
+from agents import Agent
+
+firewall = create_firewall(
+  config=FirewallConfig(name="my-agent"),
+  audit_sink=ConsoleAuditSink(),
+  approval_handler=TerminalApprovalHandler(),
+)
+
+tools = [
+  create_shell_tool(firewall=firewall),
+  create_http_tool(firewall=firewall),
+  create_file_reader_tool(firewall=firewall),
+  create_file_writer_tool(firewall=firewall),
+]
+
+agent = Agent(
+  name="Protected Agent",
+  instructions="You are a helpful assistant.",
+  tools=tools,
+)
+
+firewalled_agent = create_agent(
+  agent=agent,
+  firewall=firewall,
 )
 ```
 
@@ -290,6 +339,13 @@ python -m agentfirewall.evals.langgraph  # 19 task-oriented eval cases
 python -m pytest tests/ -v               # 84 unit and integration tests
 ```
 
+For OpenAI Agents preview support:
+
+```bash
+python examples/openai_agents_quickstart.py  # local smoke test, no API key required
+python examples/openai_agents_demo.py        # attack scenario demonstrations
+```
+
 ```text
 Eval summary: total=19, passed=19, failed=0
 Status: blocked=8  completed=9  review_required=2
@@ -302,19 +358,16 @@ Unexpected allows: 0  Unexpected blocks: 0
 
 Supported:
 
-- `agentfirewall` for core firewall construction and runtime-agnostic types
-- `agentfirewall.langgraph` for the supported LangGraph adapter (shell, HTTP, file read/write tools)
-- `agentfirewall.approval` for approval handlers (terminal interactive, static, custom callback)
-- `ConsoleAuditSink` for real-time visibility, `MultiAuditSink` for combining sinks
-- 7 built-in rules with 37 injection patterns, 28 command patterns, 27 file path patterns
-- packaged eval suite (19 cases) and local trial workflows (10 scenarios)
 
 Next expansion focus:
 
-- adapter compatibility contract and conformance tests
-- a second official runtime adapter
-- MCP client/server support on the shared core
-- generic wrappers for runtimes without a first-class adapter yet
+
+`1.1.0` — adds preview support for OpenAI Agents SDK:
+
+- `agentfirewall.openai_agents` for the OpenAI Agents adapter (function_tool-first)
+- guarded shell, HTTP, file read/write tools for OpenAI Agents
+- same policy, approval, and audit semantics as LangGraph
+- example workflows and quickstart scripts
 
 Not in scope for 1.0.0:
 

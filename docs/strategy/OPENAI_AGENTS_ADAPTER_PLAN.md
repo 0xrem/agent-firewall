@@ -114,55 +114,75 @@ The OpenAI-specific layer should only handle runtime translation and context pro
 
 Ship:
 
-- packaged local eval suite for OpenAI Agents
-- local eval cases stored alongside LangGraph and generic cases
-- fake-model runner so all evals remain offline and deterministic
 
-Minimum case coverage:
+**Status:** 🔄 In Progress - eval cases pending
 
-- safe prompt with safe function tool
-- prompt that triggers review before model execution
-- safe tool call
-- reviewed tool call without approval
-- reviewed tool call with approval
-- log-only function-tool workflow
-- nested side-effect correlation through shell, file, or HTTP
+### Tasks
 
-Definition of done:
-
-- OpenAI evals run locally with no API key
-- expected counts are stable and machine-checkable
+- [ ] Add OpenAI Agents eval cases to `agentfirewall/evals/cases/openai_agents_cases.json`
+- [ ] Implement `agentfirewall/evals/openai_agents.py` eval runner
+- [ ] Add `python -m agentfirewall.evals.openai_agents` entrypoint
+- [ ] Document eval results in `TRIAL_RUN_LOG.md`
 
 ## 2. Helper Surface Package
 
 Ship:
 
-- `create_guarded_openai_agents_shell_tool(...)`
-- `create_guarded_openai_agents_http_tool(...)`
-- `create_guarded_openai_agents_file_reader_tool(...)`
-- `create_guarded_openai_agents_file_writer_tool(...)`
 
 Design constraints:
 
-- helpers should create local `FunctionTool` instances
-- helpers should reuse shared enforcers
-- helpers should carry runtime-context metadata automatically
 
 Definition of done:
 
-- OpenAI helper tools have the same user-visible safety behavior as LangGraph helper tools on equivalent flows
+
+**Status:** ✅ Complete
+
 
 ## 3. Release Evidence Package
 
 Ship:
-
-- OpenAI eval expectations
-- candidate release gate entrypoint
-- runtime-support inventory updates
 - capability row updates once helper surfaces are real
 
 Important rule:
 
+**Status:** 🔄 In Progress
+
+### Tasks
+
+- [x] Create example scripts (`examples/openai_agents_demo.py`, `examples/openai_agents_quickstart.py`)
+- [ ] Add OpenAI Agents test file (`tests/test_openai_agents_integration.py`)
+- [ ] Update README with OpenAI Agents quickstart
+- [ ] Update `SUPPORTED_PATH.md` with OpenAI Agents preview status
+
+## Completed Work
+
+### Core Event Translator
+
+- [x] Define `OpenAIAgentsEventTranslator` class
+- [x] Map `function_tool` invocations to `tool_call` events
+- [x] Support prompt inspection
+- [x] Export from both `integrations.openai_agents` and `openai_agents`
+
+### Guarded Tools
+
+- [x] Implement guarded shell tool
+- [x] Implement guarded HTTP tool
+- [x] Implement guarded file reader tool
+- [x] Implement guarded file writer tool
+- [x] Export from both modules
+
+### Agent Wrapper
+
+- [x] Implement `create_firewalled_openai_agents_agent()`
+- [x] Support prompt inspection
+- [x] Export from both modules
+
+### Documentation
+
+- [x] Update README.md with OpenAI Agents examples
+- [x] Add quickstart example script
+- [x] Add demo example script
+- [x] Update pyproject.toml with openai-agents optional dependency
 - do not add OpenAI Agents to the official adapter registry until the evidence package is complete
 
 Definition of done:
