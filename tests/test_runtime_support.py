@@ -4,7 +4,6 @@ import tempfile
 import unittest
 
 from agentfirewall.integrations import AdapterCapability, AdapterSupportLevel
-from agentfirewall.integrations.openai_agents import get_openai_agents_adapter_spec
 from agentfirewall.runtime_support import (
     RuntimeSupportKind,
     collect_preview_runtime_evidence,
@@ -13,6 +12,7 @@ from agentfirewall.runtime_support import (
     export_runtime_support_inventory,
     export_runtime_support_matrix,
     get_generic_preview_runtime_spec,
+    get_openai_agents_preview_runtime_spec,
     get_preview_runtime,
     list_preview_runtimes,
     run_preview_runtime_eval_suite,
@@ -110,8 +110,11 @@ class RuntimeSupportInventoryTests(unittest.TestCase):
         self.assertEqual(names["openai_agents"]["tool_call_interception"], "supported")
         self.assertEqual(
             names["openai_agents"]["shell_enforcement"],
-            "not_supported",
+            "supported",
         )
+        self.assertEqual(names["openai_agents"]["file_read_enforcement"], "supported")
+        self.assertEqual(names["openai_agents"]["file_write_enforcement"], "supported")
+        self.assertEqual(names["openai_agents"]["http_enforcement"], "supported")
 
     def test_preview_runtime_registry_can_run_generic_eval_suite(self) -> None:
         summary = run_preview_runtime_eval_suite("generic_wrappers")
@@ -135,17 +138,20 @@ class RuntimeSupportInventoryTests(unittest.TestCase):
             "guarded_http_blocks_untrusted_host",
         )
 
-    def test_openai_preview_runtime_reuses_openai_adapter_spec(self) -> None:
+    def test_openai_preview_runtime_declares_helper_surface_support(self) -> None:
         runtime = get_preview_runtime("openai_agents")
 
-        self.assertEqual(runtime.spec, get_openai_agents_adapter_spec())
+        self.assertEqual(runtime.spec, get_openai_agents_preview_runtime_spec())
         self.assertEqual(runtime.spec.support_level, AdapterSupportLevel.EXPERIMENTAL)
         self.assertTrue(runtime.spec.supports(AdapterCapability.PROMPT_INSPECTION))
         self.assertTrue(runtime.spec.supports(AdapterCapability.TOOL_CALL_INTERCEPTION))
+        self.assertTrue(runtime.spec.supports(AdapterCapability.SHELL_ENFORCEMENT))
+        self.assertTrue(runtime.spec.supports(AdapterCapability.FILE_READ_ENFORCEMENT))
+        self.assertTrue(runtime.spec.supports(AdapterCapability.FILE_WRITE_ENFORCEMENT))
+        self.assertTrue(runtime.spec.supports(AdapterCapability.HTTP_ENFORCEMENT))
         self.assertTrue(runtime.spec.supports(AdapterCapability.RUNTIME_CONTEXT_CORRELATION))
         self.assertTrue(runtime.spec.supports(AdapterCapability.REVIEW_SEMANTICS))
         self.assertTrue(runtime.spec.supports(AdapterCapability.LOG_ONLY_SEMANTICS))
-        self.assertFalse(runtime.spec.supports(AdapterCapability.SHELL_ENFORCEMENT))
 
     def test_runtime_support_manifest_exports_inventory_matrix_and_preview_evidence(self) -> None:
         manifest = export_runtime_support_manifest(include_evidence=True)

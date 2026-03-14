@@ -17,6 +17,8 @@ from agentfirewall.integrations import (
 from agentfirewall.openai_agents import (
     create_agent as create_firewalled_openai_agents_agent,
     create_function_tool as create_guarded_openai_agents_function_tool,
+    create_runtime_bundle as create_openai_agents_runtime_bundle,
+    create_shell_tool as create_guarded_openai_agents_shell_tool,
 )
 from agentfirewall.policy_packs import build_builtin_policy_engine, named_policy_pack
 
@@ -407,6 +409,129 @@ class OpenAIAgentsIntegrationTests(unittest.TestCase):
         self.assertEqual(
             [entry.decision.action.value for entry in audit_sink.entries],
             ["allow", "review", "allow", "block"],
+        )
+
+    def test_openai_agents_standalone_guarded_shell_tool_raises_stable_user_error(self) -> None:
+        command_calls: list[tuple[object, bool]] = []
+        audit_sink = InMemoryAuditSink()
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+        )
+        shell_tool = create_guarded_openai_agents_shell_tool(
+            firewall=firewall,
+            runner=self._fake_runner(command_calls),
+        )
+        model = SequentialFakeModel(
+            [
+                tool_call_output(
+                    call_id="call_shell_blocked_direct",
+                    name="shell",
+                    arguments='{"command":"rm -rf /tmp/*"}',
+                ),
+                final_text_output("done"),
+            ]
+        )
+        agent = Agent(
+            name="demo",
+            instructions="Be helpful.",
+            tools=[shell_tool],
+            model=model,
+        )
+
+        with self.assertRaises(UserError) as exc_info:
+            Runner.run_sync(
+                agent,
+                "Delete all files in /tmp.",
+                run_config=RunConfig(tracing_disabled=True),
+            )
+
+        self.assertIn(
+            "AgentFirewall blocked tool shell:",
+            str(exc_info.exception),
+        )
+        self.assertEqual(command_calls, [])
+        self.assertEqual(
+            [entry.event.kind.value for entry in audit_sink.entries],
+            ["command"],
+        )
+        self.assertEqual(
+            [entry.decision.action.value for entry in audit_sink.entries],
+            ["block"],
+        )
+
+    def test_openai_agents_runtime_bundle_builds_firewall_and_helpers(self) -> None:
+        audit_sink = InMemoryAuditSink()
+
+        bundle = create_openai_agents_runtime_bundle(
+            config=FirewallConfig(name="openai-bundle", raise_on_review=False),
+            audit_sink=audit_sink,
+            approval_handler=lambda request: True,
+        )
+
+        shell_tool = bundle.create_shell_tool()
+
+        self.assertEqual(bundle.firewall.config.name, "openai-bundle")
+        self.assertIs(bundle.firewall.audit_sink, audit_sink)
+        self.assertEqual(bundle.source_prefix, "openai_agents")
+        self.assertEqual(bundle.tool_builder.source, "openai_agents")
+        self.assertIs(shell_tool.__agentfirewall__, bundle.firewall)
+
+    def test_openai_agents_runtime_bundle_rejects_mixed_firewall_inputs(self) -> None:
+        bundle = create_openai_agents_runtime_bundle()
+
+        with self.assertRaises(TypeError):
+            create_openai_agents_runtime_bundle(
+                firewall=bundle.firewall,
+                config=FirewallConfig(name="conflict"),
+            )
+
+    def test_openai_agents_runtime_bundle_propagates_custom_source_prefix(self) -> None:
+        command_calls: list[tuple[object, bool]] = []
+        audit_sink = InMemoryAuditSink()
+        bundle = create_openai_agents_runtime_bundle(
+            config=FirewallConfig(name="openai-bundle", raise_on_review=False),
+            audit_sink=audit_sink,
+            approval_handler=lambda request: True,
+            source_prefix="custom.openai",
+        )
+        shell_tool = bundle.create_shell_tool(
+            runner=self._fake_runner(command_calls),
+        )
+        model = SequentialFakeModel(
+            [
+                tool_call_output(
+                    call_id="call_shell_bundle",
+                    name="shell",
+                    arguments='{"command":"ls"}',
+                ),
+                final_text_output("done"),
+            ]
+        )
+        agent = Agent(
+            name="demo",
+            instructions="Be helpful.",
+            tools=[shell_tool],
+            model=model,
+        )
+        firewalled = bundle.create_agent(agent=agent)
+
+        result = Runner.run_sync(
+            firewalled,
+            "List the repo files.",
+            run_config=RunConfig(tracing_disabled=True),
+        )
+
+        self.assertEqual(result.final_output, "done")
+        self.assertEqual(command_calls, [("ls", True)])
+        self.assertEqual(
+            [entry.event.source for entry in audit_sink.entries],
+            [
+                "custom.openai.prompt",
+                "custom.openai.tool",
+                "custom.openai.tool",
+                "custom.openai.shell.command",
+            ],
         )
 
     def test_openai_agents_guarded_tool_rejects_sdk_needs_approval(self) -> None:

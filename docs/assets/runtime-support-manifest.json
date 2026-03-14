@@ -278,7 +278,7 @@
       }
     ]
   },
-  "generated_at": "2026-03-14T06:56:05.846129Z",
+  "generated_at": "2026-03-14T07:26:27.365094Z",
   "inventory": [
     {
       "eval_expectations": {
@@ -435,15 +435,19 @@
       "name": "openai_agents",
       "spec": {
         "capabilities": [
+          "file_read_enforcement",
+          "file_write_enforcement",
+          "http_enforcement",
           "log_only_semantics",
           "prompt_inspection",
           "review_semantics",
           "runtime_context_correlation",
+          "shell_enforcement",
           "tool_call_interception"
         ],
         "module": "agentfirewall.openai_agents",
         "name": "openai_agents",
-        "notes": "Experimental OpenAI Agents SDK adapter. Current scope is function_tool-first and excludes hosted tools, MCP servers, and handoffs.",
+        "notes": "Preview OpenAI Agents SDK support path. Prompt and function_tool interception come from the adapter hooks, while shell, file, and HTTP enforcement are available through the official helper tool builders and runtime bundle. Hosted tools, MCP servers, and handoffs remain out of scope.",
         "required_runtime_context_fields": [
           "runtime",
           "tool_name",
@@ -488,18 +492,18 @@
       "tool_call_interception": "supported"
     },
     {
-      "file_read_enforcement": "not_supported",
-      "file_write_enforcement": "not_supported",
-      "http_enforcement": "not_supported",
+      "file_read_enforcement": "supported",
+      "file_write_enforcement": "supported",
+      "http_enforcement": "supported",
       "kind": "preview_runtime",
       "log_only_semantics": "supported",
       "module": "agentfirewall.openai_agents",
       "name": "openai_agents",
-      "notes": "Experimental OpenAI Agents SDK adapter. Current scope is function_tool-first and excludes hosted tools, MCP servers, and handoffs.",
+      "notes": "Preview OpenAI Agents SDK support path. Prompt and function_tool interception come from the adapter hooks, while shell, file, and HTTP enforcement are available through the official helper tool builders and runtime bundle. Hosted tools, MCP servers, and handoffs remain out of scope.",
       "prompt_inspection": "supported",
       "review_semantics": "supported",
       "runtime_context_correlation": "supported",
-      "shell_enforcement": "not_supported",
+      "shell_enforcement": "supported",
       "support_level": "experimental",
       "tool_call_interception": "supported"
     }
@@ -661,15 +665,19 @@
       "name": "openai_agents",
       "spec": {
         "capabilities": [
+          "file_read_enforcement",
+          "file_write_enforcement",
+          "http_enforcement",
           "log_only_semantics",
           "prompt_inspection",
           "review_semantics",
           "runtime_context_correlation",
+          "shell_enforcement",
           "tool_call_interception"
         ],
         "module": "agentfirewall.openai_agents",
         "name": "openai_agents",
-        "notes": "Experimental OpenAI Agents SDK adapter. Current scope is function_tool-first and excludes hosted tools, MCP servers, and handoffs.",
+        "notes": "Preview OpenAI Agents SDK support path. Prompt and function_tool interception come from the adapter hooks, while shell, file, and HTTP enforcement are available through the official helper tool builders and runtime bundle. Hosted tools, MCP servers, and handoffs remain out of scope.",
         "required_runtime_context_fields": [
           "runtime",
           "tool_name",

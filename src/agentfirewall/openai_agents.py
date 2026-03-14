@@ -1,7 +1,11 @@
 """Experimental OpenAI Agents SDK API for AgentFirewall."""
 
 from .integrations.openai_agents import (
+    OpenAIAgentsRuntimeBundle,
     create_firewalled_openai_agents_agent as create_agent,
+)
+from .integrations.openai_agents import (
+    create_openai_agents_runtime_bundle as create_runtime_bundle,
 )
 from .integrations.openai_agents import (
     create_guarded_openai_agents_function_tool as create_function_tool,
@@ -20,7 +24,9 @@ from .integrations.openai_agents import (
 )
 
 __all__ = [
+    "OpenAIAgentsRuntimeBundle",
     "create_agent",
+    "create_runtime_bundle",
     "create_function_tool",
     "create_file_reader_tool",
     "create_file_writer_tool",

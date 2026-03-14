@@ -26,7 +26,9 @@ from .langgraph import (
 from .openai_agents import (
     OpenAIAgentsEventTranslator,
     OpenAIAgentsFirewallHooks,
+    OpenAIAgentsRuntimeBundle,
     create_firewalled_openai_agents_agent,
+    create_openai_agents_runtime_bundle,
     create_guarded_openai_agents_function_tool,
     get_openai_agents_adapter_spec,
 )
@@ -70,6 +72,8 @@ __all__ = [
     "list_official_adapter_specs",
     "OpenAIAgentsEventTranslator",
     "OpenAIAgentsFirewallHooks",
+    "OpenAIAgentsRuntimeBundle",
+    "create_openai_agents_runtime_bundle",
     "resolve_adapter_firewall",
     "run_official_adapter_eval_suite",
     "validate_eval_summary",

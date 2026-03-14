@@ -150,7 +150,30 @@ def get_generic_preview_runtime_spec() -> RuntimeAdapterSpec:
 def get_openai_agents_preview_runtime_spec() -> RuntimeAdapterSpec:
     """Return the preview support contract for the OpenAI Agents SDK path."""
 
-    return get_openai_agents_adapter_spec()
+    adapter_spec = get_openai_agents_adapter_spec()
+    return RuntimeAdapterSpec(
+        name=adapter_spec.name,
+        module=adapter_spec.module,
+        support_level=adapter_spec.support_level,
+        capabilities=capability_set(
+            AdapterCapability.PROMPT_INSPECTION,
+            AdapterCapability.TOOL_CALL_INTERCEPTION,
+            AdapterCapability.SHELL_ENFORCEMENT,
+            AdapterCapability.FILE_READ_ENFORCEMENT,
+            AdapterCapability.FILE_WRITE_ENFORCEMENT,
+            AdapterCapability.HTTP_ENFORCEMENT,
+            AdapterCapability.RUNTIME_CONTEXT_CORRELATION,
+            AdapterCapability.REVIEW_SEMANTICS,
+            AdapterCapability.LOG_ONLY_SEMANTICS,
+        ),
+        notes=(
+            "Preview OpenAI Agents SDK support path. Prompt and function_tool "
+            "interception come from the adapter hooks, while shell, file, and "
+            "HTTP enforcement are available through the official helper tool "
+            "builders and runtime bundle. Hosted tools, MCP servers, and "
+            "handoffs remain out of scope."
+        ),
+    )
 
 
 _PREVIEW_RUNTIMES: dict[str, PreviewRuntimeDefinition] = {
