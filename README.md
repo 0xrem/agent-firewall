@@ -208,7 +208,9 @@ Expansion path:
 - add new runtime adapters one by one, starting with the highest-reuse tool-calling runtimes
 - extend into MCP and lower-level wrappers without resetting policy semantics
 
-See [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md) for the expansion plan and [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md) for messaging guardrails.
+See [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md) for the expansion plan, [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md) for messaging guardrails, and [`docs/strategy/PRODUCT_STATUS.md`](./docs/strategy/PRODUCT_STATUS.md) for a blunt status check on what is solved today versus what still needs to be proved.
+
+Need a non-LangGraph local preview today? Run `python examples/generic_tool_dispatcher.py` to see the low-level guarded wrapper path. It is useful, but it is not yet an official adapter contract.
 
 ## Built-in Rules
 

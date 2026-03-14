@@ -1,4 +1,5 @@
 import json
+import subprocess
 import tempfile
 import unittest
 import warnings
@@ -593,6 +594,28 @@ class PackageTests(unittest.TestCase):
 
         self.assertEqual(result, "status:ok")
 
+    def test_tool_dispatch_records_tool_call_id_on_audit_event(self) -> None:
+        audit_sink = InMemoryAuditSink()
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+        )
+        tools = GuardedToolDispatcher(
+            firewall=firewall,
+            source="generic.tool",
+            tool_call_id_factory=lambda name, args, kwargs: "call_status_123",
+        )
+        tools.register("status", lambda message: f"status:{message}")
+
+        result = tools.dispatch("status", message="ok")
+
+        self.assertEqual(result, "status:ok")
+        self.assertEqual(
+            audit_sink.entries[-1].event.payload["tool_call_id"],
+            "call_status_123",
+        )
+        self.assertEqual(audit_sink.entries[-1].event.source, "generic.tool")
+
     def test_tool_dispatch_allows_review_when_raise_on_review_disabled(self) -> None:
         firewall = AgentFirewall(
             config=FirewallConfig(raise_on_review=False),
@@ -615,6 +638,66 @@ class PackageTests(unittest.TestCase):
         result = tools.dispatch("status", "ok")
 
         self.assertEqual(result, "status:ok")
+
+    def test_tool_dispatch_propagates_runtime_context_to_nested_command(self) -> None:
+        audit_sink = InMemoryAuditSink()
+        calls: list[tuple[object, bool, str | None]] = []
+
+        def fake_runner(command, *, shell=False, cwd=None, **kwargs):
+            calls.append((command, shell, cwd))
+            return subprocess.CompletedProcess(
+                args=command,
+                returncode=0,
+                stdout="repo files\n",
+            )
+
+        firewall = AgentFirewall(
+            config=FirewallConfig(raise_on_review=False),
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+            approval_handler=lambda request: ApprovalResponse.approve(
+                reason="Approved by unit test."
+            ),
+        )
+        runner = GuardedSubprocessRunner(
+            firewall=firewall,
+            runner=fake_runner,
+            source="generic.command",
+        )
+        tools = GuardedToolDispatcher(
+            firewall=firewall,
+            runtime="generic",
+            source="generic.tool",
+            tool_call_id_factory=lambda name, args, kwargs: "call_shell_123",
+        )
+        tools.register(
+            "shell",
+            lambda command: runner.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                check=False,
+            ).stdout.strip(),
+        )
+
+        result = tools.dispatch("shell", command="ls")
+
+        self.assertEqual(result, "repo files")
+        self.assertEqual(calls, [("ls", True, None)])
+        self.assertEqual(
+            [entry.event.kind.value for entry in audit_sink.entries],
+            ["tool_call", "tool_call", "command"],
+        )
+        self.assertEqual(
+            audit_sink.entries[-1].event.payload["runtime_context"],
+            {
+                "runtime": "generic",
+                "tool_name": "shell",
+                "tool_call_id": "call_shell_123",
+                "tool_event_source": "generic.tool",
+            },
+        )
 
     def test_regression_fixtures_match_expected_decisions(self) -> None:
         fixtures = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
