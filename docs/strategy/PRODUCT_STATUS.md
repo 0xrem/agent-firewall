@@ -153,6 +153,8 @@ AgentFirewall is on track if the repo can honestly say all of the following:
 - the same policy and audit semantics hold across both official adapters
 - real users can start in `log-only`, learn from audits, and tighten enforcement later
 
+Developers asking where the product fits into real applications should also read [`APPLICATION_ADOPTION.md`](./APPLICATION_ADOPTION.md).
+
 ## What Would Mean "We Drifted"
 
 AgentFirewall is drifting if any of these start happening:

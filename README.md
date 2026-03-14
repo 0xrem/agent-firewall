@@ -263,7 +263,7 @@ Expansion path:
 - add new runtime adapters one by one, starting with the highest-reuse tool-calling runtimes
 - extend into MCP and lower-level wrappers without resetting policy semantics
 
-See [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md) for the expansion plan, [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md) for messaging guardrails, and [`docs/strategy/PRODUCT_STATUS.md`](./docs/strategy/PRODUCT_STATUS.md) for a blunt status check on what is solved today versus what still needs to be proved.
+See [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md) for the expansion plan, [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md) for messaging guardrails, [`docs/strategy/PRODUCT_STATUS.md`](./docs/strategy/PRODUCT_STATUS.md) for a blunt status check on what is solved today versus what still needs to be proved, and [`docs/strategy/APPLICATION_ADOPTION.md`](./docs/strategy/APPLICATION_ADOPTION.md) for guidance on which application categories fit now versus later.
 
 Contributors working on adapter expansion should start with [`docs/strategy/OPENAI_AGENTS_ADAPTER_PLAN.md`](./docs/strategy/OPENAI_AGENTS_ADAPTER_PLAN.md). That document now records how the OpenAI Agents path was narrowed, validated, and promoted into the second official adapter.
 

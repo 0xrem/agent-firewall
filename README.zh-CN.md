@@ -216,7 +216,7 @@ AgentFirewall 的方向不是为每个框架单独造一个安全产品，而是
 - 按 adapter 一个一个扩，优先做复用度高的 tool-calling runtime
 - 再扩到 MCP 和更低层的 wrapper，但不重置 policy 语义
 
-具体路线见 [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md)，宣传口径见 [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md)，当前产品状态和还差什么见 [`docs/strategy/PRODUCT_STATUS.md`](./docs/strategy/PRODUCT_STATUS.md)。
+具体路线见 [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md)，宣传口径见 [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md)，当前产品状态和还差什么见 [`docs/strategy/PRODUCT_STATUS.md`](./docs/strategy/PRODUCT_STATUS.md)，如果是开发者想看“现在该切哪些应用场景、未来怎么更广进入应用”，可以直接看 [`docs/strategy/APPLICATION_ADOPTION.md`](./docs/strategy/APPLICATION_ADOPTION.md)。
 
 如果是贡献者在看 adapter 扩展该怎么推进，建议直接从 [`docs/strategy/OPENAI_AGENTS_ADAPTER_PLAN.md`](./docs/strategy/OPENAI_AGENTS_ADAPTER_PLAN.md) 开始。这份文档现在记录的是 OpenAI Agents 这条路径如何被收窄、验证并提升为第二个官方 adapter。
 
