@@ -87,94 +87,6 @@
           "unexpected_blocks": 0,
           "unexpected_reviews": 0
         }
-      }
-    ],
-    "preview_runtimes": [
-      {
-        "conformance": {
-          "adapter": "generic_wrappers",
-          "issues": [],
-          "ok": true
-        },
-        "eval_expectations": {
-          "issues": [],
-          "ok": true
-        },
-        "evaluated": true,
-        "kind": "preview_runtime",
-        "name": "generic_wrappers",
-        "ok": true,
-        "summary": {
-          "failed": 0,
-          "final_action_counts": {
-            "allow": 2,
-            "block": 3,
-            "log": 1,
-            "review": 1
-          },
-          "named_cases": {
-            "approved_shell_tool": {
-              "matched": true,
-              "name": "shell_tool_approved",
-              "observed_final_action": "allow",
-              "status": "completed"
-            },
-            "blocked_http": {
-              "matched": true,
-              "name": "guarded_http_blocks_untrusted_host",
-              "observed_final_action": "block",
-              "status": "blocked"
-            },
-            "blocked_sensitive_read": {
-              "matched": true,
-              "name": "guarded_file_blocks_sensitive_read",
-              "observed_final_action": "block",
-              "status": "blocked"
-            },
-            "blocked_sensitive_write": {
-              "matched": true,
-              "name": "guarded_file_write_blocks_sensitive_path",
-              "observed_final_action": "block",
-              "status": "blocked"
-            },
-            "log_only_workflow": {
-              "matched": true,
-              "name": "log_only_shell_then_blocked_http",
-              "observed_final_action": "log",
-              "status": "completed"
-            },
-            "review_required_tool": {
-              "matched": true,
-              "name": "shell_tool_review_without_handler",
-              "observed_final_action": "review",
-              "status": "review_required"
-            },
-            "safe_status_tool": {
-              "matched": true,
-              "name": "safe_status_tool",
-              "observed_final_action": "allow",
-              "status": "completed"
-            }
-          },
-          "passed": 7,
-          "status_counts": {
-            "blocked": 3,
-            "completed": 3,
-            "review_required": 1
-          },
-          "task_counts": {
-            "credential_injection": 1,
-            "data_exfiltration": 1,
-            "log_only_observability": 1,
-            "operations_check": 1,
-            "secret_access": 1,
-            "shell_access": 2
-          },
-          "total": 7,
-          "unexpected_allows": 0,
-          "unexpected_blocks": 0,
-          "unexpected_reviews": 0
-        }
       },
       {
         "conformance": {
@@ -187,7 +99,7 @@
           "ok": true
         },
         "evaluated": true,
-        "kind": "preview_runtime",
+        "kind": "official_adapter",
         "name": "openai_agents",
         "ok": true,
         "summary": {
@@ -276,9 +188,97 @@
           "unexpected_reviews": 0
         }
       }
+    ],
+    "preview_runtimes": [
+      {
+        "conformance": {
+          "adapter": "generic_wrappers",
+          "issues": [],
+          "ok": true
+        },
+        "eval_expectations": {
+          "issues": [],
+          "ok": true
+        },
+        "evaluated": true,
+        "kind": "preview_runtime",
+        "name": "generic_wrappers",
+        "ok": true,
+        "summary": {
+          "failed": 0,
+          "final_action_counts": {
+            "allow": 2,
+            "block": 3,
+            "log": 1,
+            "review": 1
+          },
+          "named_cases": {
+            "approved_shell_tool": {
+              "matched": true,
+              "name": "shell_tool_approved",
+              "observed_final_action": "allow",
+              "status": "completed"
+            },
+            "blocked_http": {
+              "matched": true,
+              "name": "guarded_http_blocks_untrusted_host",
+              "observed_final_action": "block",
+              "status": "blocked"
+            },
+            "blocked_sensitive_read": {
+              "matched": true,
+              "name": "guarded_file_blocks_sensitive_read",
+              "observed_final_action": "block",
+              "status": "blocked"
+            },
+            "blocked_sensitive_write": {
+              "matched": true,
+              "name": "guarded_file_write_blocks_sensitive_path",
+              "observed_final_action": "block",
+              "status": "blocked"
+            },
+            "log_only_workflow": {
+              "matched": true,
+              "name": "log_only_shell_then_blocked_http",
+              "observed_final_action": "log",
+              "status": "completed"
+            },
+            "review_required_tool": {
+              "matched": true,
+              "name": "shell_tool_review_without_handler",
+              "observed_final_action": "review",
+              "status": "review_required"
+            },
+            "safe_status_tool": {
+              "matched": true,
+              "name": "safe_status_tool",
+              "observed_final_action": "allow",
+              "status": "completed"
+            }
+          },
+          "passed": 7,
+          "status_counts": {
+            "blocked": 3,
+            "completed": 3,
+            "review_required": 1
+          },
+          "task_counts": {
+            "credential_injection": 1,
+            "data_exfiltration": 1,
+            "log_only_observability": 1,
+            "operations_check": 1,
+            "secret_access": 1,
+            "shell_access": 2
+          },
+          "total": 7,
+          "unexpected_allows": 0,
+          "unexpected_blocks": 0,
+          "unexpected_reviews": 0
+        }
+      }
     ]
   },
-  "generated_at": "2026-03-14T06:56:05.846129Z",
+  "generated_at": "2026-03-14T08:19:06.426320Z",
   "inventory": [
     {
       "eval_expectations": {
@@ -340,6 +340,70 @@
       "eval_expectations": {
         "failed": 0,
         "named_cases": {
+          "approved_shell": "shell_tool_approved",
+          "blocked_command": "dangerous_command_blocked",
+          "blocked_http": "untrusted_host_blocked",
+          "blocked_sensitive_read": "sensitive_file_access_blocked",
+          "log_only_workflow": "log_only_workflow",
+          "nested_side_effects": "nested_side_effects",
+          "prompt_review": "prompt_injection_review",
+          "safe_function_tool": "safe_function_tool",
+          "shell_review": "shell_tool_review"
+        },
+        "status_counts": {
+          "blocked": 3,
+          "completed": 4,
+          "review_required": 2
+        },
+        "task_counts": {
+          "benign_calculation": 1,
+          "dangerous_command_attempt": 1,
+          "log_only_demonstration": 1,
+          "nested_side_effects_correlation": 1,
+          "prompt_injection_attempt": 1,
+          "sensitive_file_attempt": 1,
+          "shell_access": 1,
+          "shell_access_approved": 1,
+          "untrusted_host_attempt": 1
+        },
+        "total": 9,
+        "unexpected_allows": 0,
+        "unexpected_blocks": 0,
+        "unexpected_reviews": 0
+      },
+      "eval_runner": "agentfirewall.evals:run_openai_agents_eval_suite",
+      "has_eval_expectations": true,
+      "has_eval_suite": true,
+      "kind": "official_adapter",
+      "name": "openai_agents",
+      "spec": {
+        "capabilities": [
+          "file_read_enforcement",
+          "file_write_enforcement",
+          "http_enforcement",
+          "log_only_semantics",
+          "prompt_inspection",
+          "review_semantics",
+          "runtime_context_correlation",
+          "shell_enforcement",
+          "tool_call_interception"
+        ],
+        "module": "agentfirewall.openai_agents",
+        "name": "openai_agents",
+        "notes": "Official OpenAI Agents SDK adapter. Current support remains function_tool-first, with guarded shell, file, and HTTP helper surfaces. Hosted tools, MCP servers, and handoffs remain out of scope.",
+        "required_runtime_context_fields": [
+          "runtime",
+          "tool_name",
+          "tool_call_id",
+          "tool_event_source"
+        ],
+        "support_level": "supported"
+      }
+    },
+    {
+      "eval_expectations": {
+        "failed": 0,
+        "named_cases": {
           "approved_shell_tool": "shell_tool_approved",
           "blocked_http": "guarded_http_blocks_untrusted_host",
           "blocked_sensitive_read": "guarded_file_blocks_sensitive_read",
@@ -392,66 +456,6 @@
         ],
         "support_level": "experimental"
       }
-    },
-    {
-      "eval_expectations": {
-        "failed": 0,
-        "named_cases": {
-          "approved_shell": "shell_tool_approved",
-          "blocked_command": "dangerous_command_blocked",
-          "blocked_http": "untrusted_host_blocked",
-          "blocked_sensitive_read": "sensitive_file_access_blocked",
-          "log_only_workflow": "log_only_workflow",
-          "nested_side_effects": "nested_side_effects",
-          "prompt_review": "prompt_injection_review",
-          "safe_function_tool": "safe_function_tool",
-          "shell_review": "shell_tool_review"
-        },
-        "status_counts": {
-          "blocked": 3,
-          "completed": 4,
-          "review_required": 2
-        },
-        "task_counts": {
-          "benign_calculation": 1,
-          "dangerous_command_attempt": 1,
-          "log_only_demonstration": 1,
-          "nested_side_effects_correlation": 1,
-          "prompt_injection_attempt": 1,
-          "sensitive_file_attempt": 1,
-          "shell_access": 1,
-          "shell_access_approved": 1,
-          "untrusted_host_attempt": 1
-        },
-        "total": 9,
-        "unexpected_allows": 0,
-        "unexpected_blocks": 0,
-        "unexpected_reviews": 0
-      },
-      "eval_runner": "agentfirewall.evals:run_openai_agents_eval_suite",
-      "has_eval_expectations": true,
-      "has_eval_suite": true,
-      "kind": "preview_runtime",
-      "name": "openai_agents",
-      "spec": {
-        "capabilities": [
-          "log_only_semantics",
-          "prompt_inspection",
-          "review_semantics",
-          "runtime_context_correlation",
-          "tool_call_interception"
-        ],
-        "module": "agentfirewall.openai_agents",
-        "name": "openai_agents",
-        "notes": "Experimental OpenAI Agents SDK adapter. Current scope is function_tool-first and excludes hosted tools, MCP servers, and handoffs.",
-        "required_runtime_context_fields": [
-          "runtime",
-          "tool_name",
-          "tool_call_id",
-          "tool_event_source"
-        ],
-        "support_level": "experimental"
-      }
     }
   ],
   "matrix": [
@@ -475,6 +479,22 @@
       "file_read_enforcement": "supported",
       "file_write_enforcement": "supported",
       "http_enforcement": "supported",
+      "kind": "official_adapter",
+      "log_only_semantics": "supported",
+      "module": "agentfirewall.openai_agents",
+      "name": "openai_agents",
+      "notes": "Official OpenAI Agents SDK adapter. Current support remains function_tool-first, with guarded shell, file, and HTTP helper surfaces. Hosted tools, MCP servers, and handoffs remain out of scope.",
+      "prompt_inspection": "supported",
+      "review_semantics": "supported",
+      "runtime_context_correlation": "supported",
+      "shell_enforcement": "supported",
+      "support_level": "supported",
+      "tool_call_interception": "supported"
+    },
+    {
+      "file_read_enforcement": "supported",
+      "file_write_enforcement": "supported",
+      "http_enforcement": "supported",
       "kind": "preview_runtime",
       "log_only_semantics": "supported",
       "module": "agentfirewall.generic",
@@ -484,22 +504,6 @@
       "review_semantics": "supported",
       "runtime_context_correlation": "supported",
       "shell_enforcement": "supported",
-      "support_level": "experimental",
-      "tool_call_interception": "supported"
-    },
-    {
-      "file_read_enforcement": "not_supported",
-      "file_write_enforcement": "not_supported",
-      "http_enforcement": "not_supported",
-      "kind": "preview_runtime",
-      "log_only_semantics": "supported",
-      "module": "agentfirewall.openai_agents",
-      "name": "openai_agents",
-      "notes": "Experimental OpenAI Agents SDK adapter. Current scope is function_tool-first and excludes hosted tools, MCP servers, and handoffs.",
-      "prompt_inspection": "supported",
-      "review_semantics": "supported",
-      "runtime_context_correlation": "supported",
-      "shell_enforcement": "not_supported",
       "support_level": "experimental",
       "tool_call_interception": "supported"
     }
@@ -559,6 +563,69 @@
         ],
         "support_level": "supported"
       }
+    },
+    {
+      "eval_expectations": {
+        "failed": 0,
+        "named_cases": {
+          "approved_shell": "shell_tool_approved",
+          "blocked_command": "dangerous_command_blocked",
+          "blocked_http": "untrusted_host_blocked",
+          "blocked_sensitive_read": "sensitive_file_access_blocked",
+          "log_only_workflow": "log_only_workflow",
+          "nested_side_effects": "nested_side_effects",
+          "prompt_review": "prompt_injection_review",
+          "safe_function_tool": "safe_function_tool",
+          "shell_review": "shell_tool_review"
+        },
+        "status_counts": {
+          "blocked": 3,
+          "completed": 4,
+          "review_required": 2
+        },
+        "task_counts": {
+          "benign_calculation": 1,
+          "dangerous_command_attempt": 1,
+          "log_only_demonstration": 1,
+          "nested_side_effects_correlation": 1,
+          "prompt_injection_attempt": 1,
+          "sensitive_file_attempt": 1,
+          "shell_access": 1,
+          "shell_access_approved": 1,
+          "untrusted_host_attempt": 1
+        },
+        "total": 9,
+        "unexpected_allows": 0,
+        "unexpected_blocks": 0,
+        "unexpected_reviews": 0
+      },
+      "eval_runner": "agentfirewall.evals:run_openai_agents_eval_suite",
+      "has_eval_expectations": true,
+      "has_eval_suite": true,
+      "name": "openai_agents",
+      "spec": {
+        "capabilities": [
+          "file_read_enforcement",
+          "file_write_enforcement",
+          "http_enforcement",
+          "log_only_semantics",
+          "prompt_inspection",
+          "review_semantics",
+          "runtime_context_correlation",
+          "shell_enforcement",
+          "tool_call_interception"
+        ],
+        "module": "agentfirewall.openai_agents",
+        "name": "openai_agents",
+        "notes": "Official OpenAI Agents SDK adapter. Current support remains function_tool-first, with guarded shell, file, and HTTP helper surfaces. Hosted tools, MCP servers, and handoffs remain out of scope.",
+        "required_runtime_context_fields": [
+          "runtime",
+          "tool_name",
+          "tool_call_id",
+          "tool_event_source"
+        ],
+        "support_level": "supported"
+      }
     }
   ],
   "preview_runtimes": [
@@ -610,66 +677,6 @@
         "module": "agentfirewall.generic",
         "name": "generic_wrappers",
         "notes": "Preview low-level guarded wrapper path for unsupported tool-calling runtimes. Prompt inspection is not provided.",
-        "required_runtime_context_fields": [
-          "runtime",
-          "tool_name",
-          "tool_call_id",
-          "tool_event_source"
-        ],
-        "support_level": "experimental"
-      }
-    },
-    {
-      "eval_expectations": {
-        "failed": 0,
-        "named_cases": {
-          "approved_shell": "shell_tool_approved",
-          "blocked_command": "dangerous_command_blocked",
-          "blocked_http": "untrusted_host_blocked",
-          "blocked_sensitive_read": "sensitive_file_access_blocked",
-          "log_only_workflow": "log_only_workflow",
-          "nested_side_effects": "nested_side_effects",
-          "prompt_review": "prompt_injection_review",
-          "safe_function_tool": "safe_function_tool",
-          "shell_review": "shell_tool_review"
-        },
-        "status_counts": {
-          "blocked": 3,
-          "completed": 4,
-          "review_required": 2
-        },
-        "task_counts": {
-          "benign_calculation": 1,
-          "dangerous_command_attempt": 1,
-          "log_only_demonstration": 1,
-          "nested_side_effects_correlation": 1,
-          "prompt_injection_attempt": 1,
-          "sensitive_file_attempt": 1,
-          "shell_access": 1,
-          "shell_access_approved": 1,
-          "untrusted_host_attempt": 1
-        },
-        "total": 9,
-        "unexpected_allows": 0,
-        "unexpected_blocks": 0,
-        "unexpected_reviews": 0
-      },
-      "eval_runner": "agentfirewall.evals:run_openai_agents_eval_suite",
-      "has_eval_expectations": true,
-      "has_eval_suite": true,
-      "kind": "preview_runtime",
-      "name": "openai_agents",
-      "spec": {
-        "capabilities": [
-          "log_only_semantics",
-          "prompt_inspection",
-          "review_semantics",
-          "runtime_context_correlation",
-          "tool_call_interception"
-        ],
-        "module": "agentfirewall.openai_agents",
-        "name": "openai_agents",
-        "notes": "Experimental OpenAI Agents SDK adapter. Current scope is function_tool-first and excludes hosted tools, MCP servers, and handoffs.",
         "required_runtime_context_fields": [
           "runtime",
           "tool_name",
