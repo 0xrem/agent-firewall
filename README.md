@@ -16,6 +16,12 @@
   <img alt="License" src="https://img.shields.io/pypi/l/agentfirewall">
 </p>
 
+  <p align="center">
+    <a href="https://0xrem.github.io/agent-firewall/">
+      <img alt="Website" src="https://img.shields.io/badge/website-live-58a6ff">
+    </a>
+  </p>
+
 <p align="center">
   <img
     src="https://raw.githubusercontent.com/0xrem/agent-firewall/main/docs/assets/readme/agentfirewall-banner.png"
