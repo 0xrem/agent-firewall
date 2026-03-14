@@ -210,7 +210,7 @@ AgentFirewall 的方向不是为每个框架单独造一个安全产品，而是
 
 具体路线见 [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md)，宣传口径见 [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md)，当前产品状态和还差什么见 [`docs/strategy/PRODUCT_STATUS.md`](./docs/strategy/PRODUCT_STATUS.md)。
 
-如果你今天还不在 LangGraph 上，也可以先跑 `python examples/generic_tool_dispatcher.py` 看低层 guarded wrapper 的本地预览路径，或者运行 `python -m agentfirewall.evals.generic` 看这条路径的本地证据。它已经有用，但还不是官方 adapter contract。
+如果你今天还不在 LangGraph 上，也可以先跑 `python examples/generic_tool_dispatcher.py` 看低层 guarded wrapper 的本地预览路径，或者运行 `python -m agentfirewall.evals.generic` 看这条路径的本地证据。现在这条路径会单独作为 preview runtime support 被记录，但它还不是官方 adapter contract。
 
 ## 内置规则
 

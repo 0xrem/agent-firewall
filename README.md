@@ -210,7 +210,7 @@ Expansion path:
 
 See [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md) for the expansion plan, [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md) for messaging guardrails, and [`docs/strategy/PRODUCT_STATUS.md`](./docs/strategy/PRODUCT_STATUS.md) for a blunt status check on what is solved today versus what still needs to be proved.
 
-Need a non-LangGraph local preview today? Run `python examples/generic_tool_dispatcher.py` to see the low-level guarded wrapper path, or `python -m agentfirewall.evals.generic` to inspect its packaged local evidence. It is useful, but it is not yet an official adapter contract.
+Need a non-LangGraph local preview today? Run `python examples/generic_tool_dispatcher.py` to see the low-level guarded wrapper path, or `python -m agentfirewall.evals.generic` to inspect its packaged local evidence. That path is now tracked separately as preview runtime support, but it is still not an official adapter contract.
 
 ## Built-in Rules
 

@@ -42,7 +42,7 @@ This is already useful for:
 | Stop dangerous side effects before execution | `strong` | LangGraph path is shipped and regression-covered |
 | Shared runtime firewall core | `strong` | Policy, approval, audit, enforcers, and runtime context are adapter-oriented |
 | Adapter contract and release evidence | `strong` | Capability matrix, conformance, eval expectations, and release gate are in-repo |
-| Lightweight non-LangGraph adoption | `partial` | Low-level wrappers exist, but adoption still needs clearer preview paths and examples |
+| Lightweight non-LangGraph adoption | `partial` | Low-level wrappers exist, now with packaged eval evidence and preview-runtime inventory, but adoption still needs clearer onboarding |
 | Multi-runtime proof | `not_done` | The second official adapter has not shipped yet |
 | Production trust across unknown workloads | `early` | False-positive pressure and real deployment evidence still need work |
 
