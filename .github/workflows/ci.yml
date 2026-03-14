@@ -81,7 +81,7 @@ jobs:
       - name: Install package with OpenAI Agents and dev extras
         run: python -m pip install --upgrade pip && python -m pip install -e '.[openai-agents,dev]'
 
-      - name: Run OpenAI Agents preview tests
+      - name: Run OpenAI Agents adapter tests
         run: python -m pytest tests/test_openai_agents_integration.py tests/test_openai_agents_evals.py -v
 
       - name: Run OpenAI Agents eval suite
@@ -118,10 +118,10 @@ jobs:
               for item in payload["evidence"]["preview_runtimes"]
           }
           assert preview["generic_wrappers"]["ok"] is True
-          assert preview["openai_agents"]["ok"] is True
           official = {
               item["name"]: item
               for item in payload["evidence"]["official_adapters"]
           }
           assert official["langgraph"]["ok"] is True
+          assert official["openai_agents"]["ok"] is True
           PY
