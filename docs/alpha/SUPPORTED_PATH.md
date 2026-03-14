@@ -33,9 +33,9 @@ Use `agentfirewall.approval` for the documented approval helper path:
 
 Lower-level helpers under modules such as `agentfirewall.enforcers`, `agentfirewall.audit`, `agentfirewall.policy_packs`, and `agentfirewall.integrations.langgraph` are still useful, but they are advanced usage rather than the primary supported entrypoint.
 
-## Preview: OpenAI Agents SDK Support
+## Experimental Candidate: OpenAI Agents SDK
 
-Starting in `1.1.0`, OpenAI Agents SDK is available as a **preview** adapter:
+The repo contains an experimental OpenAI Agents SDK path under `agentfirewall.openai_agents`:
 
 ```python
 from agentfirewall import FirewallConfig, create_firewall
@@ -53,47 +53,19 @@ agent = create_agent(
 )
 ```
 
-Preview status means:
+Current boundary:
 
-- same core policy, approval, and audit behavior as LangGraph
-- eval suite available under `python -m agentfirewall.evals.openai_agents`
-- API surface may still evolve based on real-world feedback
-- not yet covered by the full adapter conformance contract
+- function-tool-first only
+- local helper tools for shell, file, and HTTP exist in code
+- packaged local evals are available under `python -m agentfirewall.evals.openai_agents`
+- hosted tools, MCP servers, and handoffs are still out of scope
+- this path is not yet part of the official supported adapter contract
 
 Install with:
 
 ```bash
 python -m pip install agentfirewall[openai-agents]
 ```
-
-## Supported Imports
-
-Use top-level `agentfirewall` for the runtime-agnostic core:
-
-- `AgentFirewall`
-- `FirewallConfig`
-- `ApprovalResponse`
-- `ReviewRequired`
-- `FirewallViolation`
-- `InMemoryAuditSink`
-- `create_firewall(...)`
-
-Use `agentfirewall.langgraph` for the supported runtime path:
-
-- `create_agent(...)`
-- `create_shell_tool(...)`
-- `create_http_tool(...)`
-- `create_file_reader_tool(...)`
-- `create_file_writer_tool(...)`
-
-Use `agentfirewall.approval` for the documented approval helper path:
-
-- `StaticApprovalHandler`
-- `approve_all(...)`
-- `deny_all(...)`
-- `timeout_all(...)`
-
-Lower-level helpers under modules such as `agentfirewall.enforcers`, `agentfirewall.audit`, `agentfirewall.policy_packs`, and `agentfirewall.integrations.langgraph` are still useful, but they are advanced usage rather than the primary supported entrypoint.
 
 ## Install
 

@@ -5,23 +5,6 @@ from __future__ import annotations
 from importlib import import_module
 from typing import Any
 
-from .contracts import (
-    EvalExpectationIssue,
-    EvalExpectationReport,
-    EvalSuiteExpectations,
-    find_eval_result,
-    find_eval_trace,
-    find_named_eval_result,
-    require_eval_result,
-    require_eval_trace,
-    require_named_eval_result,
-    validate_eval_summary_against_expectations,
-)
-from .models import EvalRunStatus, EvaluationResult, EvaluationSummary
-from .generic import GenericEvalCase, load_generic_eval_cases, run_generic_eval_case, run_generic_eval_suite
-from .langgraph import LangGraphEvalCase, load_langgraph_eval_cases, run_langgraph_eval_case, run_langgraph_eval_suite
-from .openai_agents import OpenAIAgentsEvalCase, load_openai_agents_eval_cases, run_openai_agents_eval_case, run_openai_agents_evals
-
 __all__ = [
     "EvalExpectationIssue",
     "EvalExpectationReport",
@@ -31,55 +14,63 @@ __all__ = [
     "EvaluationSummary",
     "GenericEvalCase",
     "LangGraphEvalCase",
-        "OpenAIAgentsEvalCase",
+    "OpenAIAgentsEvalCase",
     "find_eval_result",
     "find_eval_trace",
     "find_named_eval_result",
     "load_generic_eval_cases",
-        "load_openai_agents_eval_cases",
     "load_langgraph_eval_cases",
+    "load_openai_agents_eval_cases",
     "require_eval_result",
     "require_eval_trace",
     "require_named_eval_result",
     "run_generic_eval_case",
     "run_generic_eval_suite",
-        "run_openai_agents_eval_case",
-        "run_openai_agents_evals",
     "run_langgraph_eval_case",
     "run_langgraph_eval_suite",
+    "run_openai_agents_eval_case",
+    "run_openai_agents_eval_suite",
     "validate_eval_summary_against_expectations",
 ]
 
+_MODULE_EXPORTS: dict[str, str] = {
+    "EvalExpectationIssue": ".contracts",
+    "EvalExpectationReport": ".contracts",
+    "EvalSuiteExpectations": ".contracts",
+    "find_eval_result": ".contracts",
+    "find_eval_trace": ".contracts",
+    "find_named_eval_result": ".contracts",
+    "require_eval_result": ".contracts",
+    "require_eval_trace": ".contracts",
+    "require_named_eval_result": ".contracts",
+    "validate_eval_summary_against_expectations": ".contracts",
+    "EvalRunStatus": ".models",
+    "EvaluationResult": ".models",
+    "EvaluationSummary": ".models",
+    "GenericEvalCase": ".generic",
+    "load_generic_eval_cases": ".generic",
+    "run_generic_eval_case": ".generic",
+    "run_generic_eval_suite": ".generic",
+    "LangGraphEvalCase": ".langgraph",
+    "load_langgraph_eval_cases": ".langgraph",
+    "run_langgraph_eval_case": ".langgraph",
+    "run_langgraph_eval_suite": ".langgraph",
+    "OpenAIAgentsEvalCase": ".openai_agents",
+    "load_openai_agents_eval_cases": ".openai_agents",
+    "run_openai_agents_eval_case": ".openai_agents",
+    "run_openai_agents_eval_suite": ".openai_agents",
+}
+
 
 def __getattr__(name: str) -> Any:
-    if name not in __all__:
+    if name not in _MODULE_EXPORTS:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
-    if name in {
-        "EvalRunStatus",
-        "EvaluationResult",
-        "EvaluationSummary",
-    }:
-        module = import_module(".models", __name__)
-        return getattr(module, name)
+    module = import_module(_MODULE_EXPORTS[name], __name__)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value
 
-    if name in {
-        "LangGraphEvalCase",
-        "load_langgraph_eval_cases",
-        "run_langgraph_eval_case",
-        "run_langgraph_eval_suite",
-    }:
-        module = import_module(".langgraph", __name__)
-        return getattr(module, name)
 
-    if name in {
-        "GenericEvalCase",
-        "load_generic_eval_cases",
-        "run_generic_eval_case",
-        "run_generic_eval_suite",
-    }:
-        module = import_module(".generic", __name__)
-        return getattr(module, name)
-
-    module = import_module(".contracts", __name__)
-    return getattr(module, name)
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))

@@ -11,10 +11,19 @@ from typing import Any
 from ..approval import ApprovalHandler
 from ..audit import AuditSink
 from ..config import FirewallConfig
+from ..enforcers import (
+    GuardedFileAccess,
+    GuardedHttpClient,
+    GuardedSubprocessRunner,
+)
 from ..events import EventContext
 from ..firewall import AgentFirewall
 from ..policy_packs import PolicyPackConfig
-from ..runtime_context import build_tool_runtime_context, runtime_event_context
+from ..runtime_context import (
+    attach_runtime_context,
+    build_tool_runtime_context,
+    runtime_event_context,
+)
 from .assembly import resolve_adapter_firewall
 from .contracts import (
     AdapterCapability,
@@ -22,29 +31,12 @@ from .contracts import (
     RuntimeAdapterSpec,
     capability_set,
 )
-from ..enforcers import (
-    GuardedFileAccess,
-    GuardedHttpClient,
-    GuardedSubprocessRunner,
-)
-from ..runtime_context import attach_runtime_context
-from ..enforcers import (
-    GuardedFileAccess,
-    GuardedHttpClient,
-    GuardedSubprocessRunner,
-)
-from ..runtime_context import attach_runtime_context
 
 try:
-    from agents import Agent, FunctionTool, function_tool
+    from agents import FunctionTool, function_tool
     from agents.lifecycle import AgentHooksBase
-    from agents.run_context import RunContextWrapper
-    from agents.tool_context import ToolContext
 except ImportError:  # pragma: no cover - exercised when optional deps are absent.
-    Agent = Any  # type: ignore[assignment]
     FunctionTool = Any  # type: ignore[assignment]
-    RunContextWrapper = Any  # type: ignore[assignment]
-    ToolContext = Any  # type: ignore[assignment]
 
     def function_tool(*args: Any, **kwargs: Any) -> Any:  # type: ignore[no-redef]
         raise ImportError
@@ -311,6 +303,20 @@ def _coerce_function_tool(tool: Any) -> Any:
     return function_tool(tool, failure_error_function=None)
 
 
+def _decorate_function_tool(
+    *,
+    name: str,
+    description: str,
+    func: Callable[..., Any],
+) -> Any:
+    tool_decorator = function_tool(
+        name_override=name,
+        description_override=description,
+        failure_error_function=None,
+    )
+    return tool_decorator(func)
+
+
 def _validate_supported_openai_agent(agent: Any) -> None:
     handoffs = getattr(agent, "handoffs", ())
     if handoffs:
@@ -339,226 +345,212 @@ def _validate_supported_openai_agent(agent: Any) -> None:
         )
 
 
-    @dataclasses.dataclass(frozen=True, slots=True)
-    class OpenAIAgentsGuardedToolBuilder:
-        """Build guarded tool surfaces for the OpenAI Agents adapter."""
+@dataclasses.dataclass(frozen=True, slots=True)
+class OpenAIAgentsGuardedToolBuilder:
+    """Build guarded tool surfaces for the OpenAI Agents adapter."""
 
-        firewall: AgentFirewall
-        source: str = "openai_agents"
+    firewall: AgentFirewall
+    source: str = "openai_agents"
 
-        def _create_guarded_function_tool(
-            self,
-            *,
-            name: str,
-            description: str,
-            func: Callable[..., Any],
-        ) -> Any:
-            """Create a guarded function tool with firewall enforcement."""
-            _require_openai_agents()
+    def _create_guarded_function_tool(
+        self,
+        *,
+        name: str,
+        description: str,
+        func: Callable[..., Any],
+    ) -> Any:
+        _require_openai_agents()
+        guarded_tool = _decorate_function_tool(
+            name=name,
+            description=description,
+            func=func,
+        )
+        setattr(guarded_tool, "__agentfirewall__", self.firewall)
+        return guarded_tool
 
-            guarded_func = func
-            tool_decorator = function_tool(
-                name=name,
-                description=description,
-                failure_error_function=None,
-            )
-            guarded_tool = tool_decorator(guarded_func)
-            setattr(guarded_tool, "__agentfirewall__", self.firewall)
-            return guarded_tool
+    def create_shell_tool(
+        self,
+        *,
+        name: str = "shell",
+        description: str = (
+            "Run a shell command through AgentFirewall-guarded subprocess execution."
+        ),
+        source: str = "openai_agents.shell",
+        runner: Callable[..., Any] | None = None,
+        shell: bool = True,
+        run_kwargs: Mapping[str, Any] | None = None,
+        encoding: str = "utf-8",
+        strip_output: bool = True,
+    ) -> Any:
+        """Create a guarded shell tool for OpenAI Agents."""
+        from ..integrations.langgraph import _format_subprocess_result
 
-        def create_shell_tool(
-            self,
-            *,
-            name: str = "shell",
-            description: str = (
-                "Run a shell command through AgentFirewall-guarded subprocess execution."
-            ),
-            source: str = "openai_agents.shell",
-            runner: Callable[..., Any] | None = None,
-            shell: bool = True,
-            run_kwargs: Mapping[str, Any] | None = None,
-            encoding: str = "utf-8",
-            strip_output: bool = True,
-        ) -> Any:
-            """Create a guarded shell tool for OpenAI Agents."""
-            from ..integrations.langgraph import (
-                _format_subprocess_result,
-            )
+        guarded_runner_kwargs: dict[str, Any] = {
+            "firewall": self.firewall,
+            "source": f"{source}.command",
+        }
+        if runner is not None:
+            guarded_runner_kwargs["runner"] = runner
+        guarded_runner = GuardedSubprocessRunner(**guarded_runner_kwargs)
 
-            guarded_runner_kwargs: dict[str, Any] = {
-                "firewall": self.firewall,
-                "source": f"{source}.command",
-            }
-            if runner is not None:
-                guarded_runner_kwargs["runner"] = runner
-            guarded_runner = GuardedSubprocessRunner(**guarded_runner_kwargs)
+        runner_kwargs = {"capture_output": True, "text": True, "check": False}
+        if run_kwargs is not None:
+            runner_kwargs.update(dict(run_kwargs))
 
-            runner_kwargs = {"capture_output": True, "text": True, "check": False}
-            if run_kwargs is not None:
-                runner_kwargs.update(dict(run_kwargs))
-
-            def guarded_shell(command: str, cwd: str = "") -> str:
-                """Run a shell command through AgentFirewall-guarded subprocess execution."""
-                invocation_kwargs = dict(runner_kwargs)
-                if cwd:
-                    invocation_kwargs["cwd"] = cwd
-                result = guarded_runner.run(command, shell=shell, **invocation_kwargs)
-                return _format_subprocess_result(
-                    result,
-                    encoding=encoding,
-                    strip_output=strip_output,
-                )
-
-            return self._create_guarded_function_tool(
-                name=name,
-                description=description,
-                func=guarded_shell,
+        def guarded_shell(command: str, cwd: str = "") -> str:
+            invocation_kwargs = dict(runner_kwargs)
+            if cwd:
+                invocation_kwargs["cwd"] = cwd
+            result = guarded_runner.run(command, shell=shell, **invocation_kwargs)
+            return _format_subprocess_result(
+                result,
+                encoding=encoding,
+                strip_output=strip_output,
             )
 
-        def create_http_tool(
-            self,
-            *,
-            name: str = "http_request",
-            description: str = (
-                "Send an outbound HTTP request through AgentFirewall-guarded network enforcement."
-            ),
-            source: str = "openai_agents.http",
-            opener: Callable[..., Any] | None = None,
-            request_kwargs: Mapping[str, Any] | None = None,
-            encoding: str = "utf-8",
-            max_chars: int | None = 4096,
-            strip_output: bool = False,
-        ) -> Any:
-            """Create a guarded HTTP tool for OpenAI Agents."""
-            from ..integrations.langgraph import (
-                _read_text_resource,
+        return self._create_guarded_function_tool(
+            name=name,
+            description=description,
+            func=guarded_shell,
+        )
+
+    def create_http_tool(
+        self,
+        *,
+        name: str = "http_request",
+        description: str = (
+            "Send an outbound HTTP request through AgentFirewall-guarded network enforcement."
+        ),
+        source: str = "openai_agents.http",
+        opener: Callable[..., Any] | None = None,
+        request_kwargs: Mapping[str, Any] | None = None,
+        encoding: str = "utf-8",
+        max_chars: int | None = 4096,
+        strip_output: bool = False,
+    ) -> Any:
+        """Create a guarded HTTP tool for OpenAI Agents."""
+        from ..integrations.langgraph import _read_text_resource
+
+        client_kwargs: dict[str, Any] = {
+            "firewall": self.firewall,
+            "source": f"{source}.request",
+        }
+        if opener is not None:
+            client_kwargs["opener"] = opener
+        guarded_client = GuardedHttpClient(**client_kwargs)
+        resolved_request_kwargs = dict(request_kwargs or {})
+
+        def guarded_http_request(url: str, method: str = "GET") -> str:
+            response = guarded_client.request(
+                url,
+                method=method,
+                **dict(resolved_request_kwargs),
+            )
+            return _read_text_resource(
+                response,
+                encoding=encoding,
+                max_chars=max_chars,
+                strip_output=strip_output,
             )
 
-            client_kwargs: dict[str, Any] = {
-                "firewall": self.firewall,
-                "source": f"{source}.request",
-            }
-            if opener is not None:
-                client_kwargs["opener"] = opener
-            guarded_client = GuardedHttpClient(**client_kwargs)
-            resolved_request_kwargs = dict(request_kwargs or {})
+        return self._create_guarded_function_tool(
+            name=name,
+            description=description,
+            func=guarded_http_request,
+        )
 
-            def guarded_http_request(url: str, method: str = "GET") -> str:
-                """Send an outbound HTTP request through AgentFirewall-guarded network enforcement."""
-                response = guarded_client.request(
-                    url,
-                    method=method,
-                    **dict(resolved_request_kwargs),
-                )
-                return _read_text_resource(
-                    response,
-                    encoding=encoding,
-                    max_chars=max_chars,
-                    strip_output=strip_output,
-                )
+    def create_file_reader_tool(
+        self,
+        *,
+        name: str = "read_file",
+        description: str = (
+            "Read a local file through AgentFirewall-guarded filesystem enforcement."
+        ),
+        source: str = "openai_agents.file",
+        opener: Callable[..., Any] | None = None,
+        read_kwargs: Mapping[str, Any] | None = None,
+        encoding: str = "utf-8",
+        max_chars: int | None = 4096,
+        strip_output: bool = False,
+    ) -> Any:
+        """Create a guarded file reader tool for OpenAI Agents."""
+        from ..integrations.langgraph import _read_text_resource
 
-            return self._create_guarded_function_tool(
-                name=name,
-                description=description,
-                func=guarded_http_request,
+        access_kwargs: dict[str, Any] = {
+            "firewall": self.firewall,
+            "source": f"{source}.file",
+        }
+        if opener is not None:
+            access_kwargs["opener"] = opener
+        file_access = GuardedFileAccess(**access_kwargs)
+
+        def guarded_file_reader(path: str) -> str:
+            open_kwargs = dict(read_kwargs or {})
+            if "encoding" not in open_kwargs:
+                open_kwargs["encoding"] = encoding
+            handle = file_access.open(path, "r", **open_kwargs)
+            return _read_text_resource(
+                handle,
+                encoding=encoding,
+                max_chars=max_chars,
+                strip_output=strip_output,
             )
 
-        def create_file_reader_tool(
-            self,
-            *,
-            name: str = "read_file",
-            description: str = (
-                "Read a local file through AgentFirewall-guarded filesystem enforcement."
-            ),
-            source: str = "openai_agents.file",
-            opener: Callable[..., Any] | None = None,
-            read_kwargs: Mapping[str, Any] | None = None,
-            encoding: str = "utf-8",
-            max_chars: int | None = 4096,
-            strip_output: bool = False,
-        ) -> Any:
-            """Create a guarded file reader tool for OpenAI Agents."""
-            from ..integrations.langgraph import (
-                _read_text_resource,
+        return self._create_guarded_function_tool(
+            name=name,
+            description=description,
+            func=guarded_file_reader,
+        )
+
+    def create_file_writer_tool(
+        self,
+        *,
+        name: str = "write_file",
+        description: str = (
+            "Write content to a local file through AgentFirewall-guarded filesystem enforcement."
+        ),
+        source: str = "openai_agents.file",
+        writer: Callable[..., Any] | None = None,
+        encoding: str = "utf-8",
+        write_kwargs: Mapping[str, Any] | None = None,
+    ) -> Any:
+        """Create a guarded file writer tool for OpenAI Agents."""
+        file_source = f"{source}.file"
+        file_access = None
+        if writer is None:
+            file_access = GuardedFileAccess(
+                firewall=self.firewall,
+                source=file_source,
             )
 
-            access_kwargs: dict[str, Any] = {
-                "firewall": self.firewall,
-                "source": f"{source}.file",
-            }
-            if opener is not None:
-                access_kwargs["opener"] = opener
-            file_access = GuardedFileAccess(**access_kwargs)
-
-            def guarded_file_reader(path: str) -> str:
-                """Read a local file through AgentFirewall-guarded filesystem enforcement."""
-                open_kwargs = dict(read_kwargs or {})
+        def guarded_file_writer(path: str, content: str) -> str:
+            if writer is None:
+                assert file_access is not None
+                open_kwargs = dict(write_kwargs or {})
                 if "encoding" not in open_kwargs:
                     open_kwargs["encoding"] = encoding
-                handle = file_access.open(path, "r", **open_kwargs)
-                return _read_text_resource(
-                    handle,
-                    encoding=encoding,
-                    max_chars=max_chars,
-                    strip_output=strip_output,
-                )
-
-            return self._create_guarded_function_tool(
-                name=name,
-                description=description,
-                func=guarded_file_reader,
-            )
-
-        def create_file_writer_tool(
-            self,
-            *,
-            name: str = "write_file",
-            description: str = (
-                "Write content to a local file through AgentFirewall-guarded filesystem enforcement."
-            ),
-            source: str = "openai_agents.file",
-            writer: Callable[..., Any] | None = None,
-            encoding: str = "utf-8",
-            write_kwargs: Mapping[str, Any] | None = None,
-        ) -> Any:
-            """Create a guarded file writer tool for OpenAI Agents."""
-            file_source = f"{source}.file"
-            file_access = None
-            if writer is None:
-                file_access = GuardedFileAccess(
-                    firewall=self.firewall,
-                    source=file_source,
-                )
-
-            def guarded_file_writer(path: str, content: str) -> str:
-                """Write content to a local file through AgentFirewall-guarded filesystem enforcement."""
-                if writer is None:
-                    assert file_access is not None
-                    open_kwargs = dict(write_kwargs or {})
-                    if "encoding" not in open_kwargs:
-                        open_kwargs["encoding"] = encoding
-                    handle = file_access.open(path, "w", **open_kwargs)
-                    if hasattr(handle, "write"):
-                        handle.write(content)
-                        if hasattr(handle, "close"):
-                            handle.close()
-                else:
-                    event = attach_runtime_context(
-                        EventContext.file_access(
-                            path,
-                            mode="write",
-                            source=file_source,
-                        )
+                handle = file_access.open(path, "w", **open_kwargs)
+                if hasattr(handle, "write"):
+                    handle.write(content)
+                    if hasattr(handle, "close"):
+                        handle.close()
+            else:
+                event = attach_runtime_context(
+                    EventContext.file_access(
+                        path,
+                        mode="write",
+                        source=file_source,
                     )
-                    self.firewall.enforce(event)
-                    writer(path, content, **dict(write_kwargs or {}))
-                return f"wrote {len(content)} chars to {path}"
+                )
+                self.firewall.enforce(event)
+                writer(path, content, **dict(write_kwargs or {}))
+            return f"wrote {len(content)} chars to {path}"
 
-            return self._create_guarded_function_tool(
-                name=name,
-                description=description,
-                func=guarded_file_writer,
-            )
+        return self._create_guarded_function_tool(
+            name=name,
+            description=description,
+            func=guarded_file_writer,
+        )
 
 
 def create_guarded_openai_agents_function_tool(
@@ -653,123 +645,119 @@ def create_firewalled_openai_agents_agent(
     return firewalled_agent
 
 
-    def create_guarded_openai_agents_shell_tool(
-        *,
-        firewall: AgentFirewall,
-        name: str = "shell",
-        description: str = (
-            "Run a shell command through AgentFirewall-guarded subprocess execution."
-        ),
-        source: str = "openai_agents.shell",
-        runner: Callable[..., Any] | None = None,
-        shell: bool = True,
-        run_kwargs: Mapping[str, Any] | None = None,
-        encoding: str = "utf-8",
-        strip_output: bool = True,
-    ) -> Any:
-        """Create a guarded shell tool for OpenAI Agents."""
-        return OpenAIAgentsGuardedToolBuilder(firewall=firewall).create_shell_tool(
-            name=name,
-            description=description,
-            source=source,
-            runner=runner,
-            shell=shell,
-            run_kwargs=run_kwargs,
-            encoding=encoding,
-            strip_output=strip_output,
-        )
+def create_guarded_openai_agents_shell_tool(
+    *,
+    firewall: AgentFirewall,
+    name: str = "shell",
+    description: str = (
+        "Run a shell command through AgentFirewall-guarded subprocess execution."
+    ),
+    source: str = "openai_agents.shell",
+    runner: Callable[..., Any] | None = None,
+    shell: bool = True,
+    run_kwargs: Mapping[str, Any] | None = None,
+    encoding: str = "utf-8",
+    strip_output: bool = True,
+) -> Any:
+    """Create a guarded shell tool for OpenAI Agents."""
+    return OpenAIAgentsGuardedToolBuilder(firewall=firewall).create_shell_tool(
+        name=name,
+        description=description,
+        source=source,
+        runner=runner,
+        shell=shell,
+        run_kwargs=run_kwargs,
+        encoding=encoding,
+        strip_output=strip_output,
+    )
 
 
-    def create_guarded_openai_agents_http_tool(
-        *,
-        firewall: AgentFirewall,
-        name: str = "http_request",
-        description: str = (
-            "Send an outbound HTTP request through AgentFirewall-guarded network enforcement."
-        ),
-        source: str = "openai_agents.http",
-        opener: Callable[..., Any] | None = None,
-        request_kwargs: Mapping[str, Any] | None = None,
-        encoding: str = "utf-8",
-        max_chars: int | None = 4096,
-        strip_output: bool = False,
-    ) -> Any:
-        """Create a guarded HTTP tool for OpenAI Agents."""
-        return OpenAIAgentsGuardedToolBuilder(firewall=firewall).create_http_tool(
-            name=name,
-            description=description,
-            source=source,
-            opener=opener,
-            request_kwargs=request_kwargs,
-            encoding=encoding,
-            max_chars=max_chars,
-            strip_output=strip_output,
-        )
+def create_guarded_openai_agents_http_tool(
+    *,
+    firewall: AgentFirewall,
+    name: str = "http_request",
+    description: str = (
+        "Send an outbound HTTP request through AgentFirewall-guarded network enforcement."
+    ),
+    source: str = "openai_agents.http",
+    opener: Callable[..., Any] | None = None,
+    request_kwargs: Mapping[str, Any] | None = None,
+    encoding: str = "utf-8",
+    max_chars: int | None = 4096,
+    strip_output: bool = False,
+) -> Any:
+    """Create a guarded HTTP tool for OpenAI Agents."""
+    return OpenAIAgentsGuardedToolBuilder(firewall=firewall).create_http_tool(
+        name=name,
+        description=description,
+        source=source,
+        opener=opener,
+        request_kwargs=request_kwargs,
+        encoding=encoding,
+        max_chars=max_chars,
+        strip_output=strip_output,
+    )
 
 
-    def create_guarded_openai_agents_file_reader_tool(
-        *,
-        firewall: AgentFirewall,
-        name: str = "read_file",
-        description: str = (
-            "Read a local file through AgentFirewall-guarded filesystem enforcement."
-        ),
-        source: str = "openai_agents.file",
-        opener: Callable[..., Any] | None = None,
-        read_kwargs: Mapping[str, Any] | None = None,
-        encoding: str = "utf-8",
-        max_chars: int | None = 4096,
-        strip_output: bool = False,
-    ) -> Any:
-        """Create a guarded file reader tool for OpenAI Agents."""
-        return OpenAIAgentsGuardedToolBuilder(firewall=firewall).create_file_reader_tool(
-            name=name,
-            description=description,
-            source=source,
-            opener=opener,
-            read_kwargs=read_kwargs,
-            encoding=encoding,
-            max_chars=max_chars,
-            strip_output=strip_output,
-        )
+def create_guarded_openai_agents_file_reader_tool(
+    *,
+    firewall: AgentFirewall,
+    name: str = "read_file",
+    description: str = (
+        "Read a local file through AgentFirewall-guarded filesystem enforcement."
+    ),
+    source: str = "openai_agents.file",
+    opener: Callable[..., Any] | None = None,
+    read_kwargs: Mapping[str, Any] | None = None,
+    encoding: str = "utf-8",
+    max_chars: int | None = 4096,
+    strip_output: bool = False,
+) -> Any:
+    """Create a guarded file reader tool for OpenAI Agents."""
+    return OpenAIAgentsGuardedToolBuilder(firewall=firewall).create_file_reader_tool(
+        name=name,
+        description=description,
+        source=source,
+        opener=opener,
+        read_kwargs=read_kwargs,
+        encoding=encoding,
+        max_chars=max_chars,
+        strip_output=strip_output,
+    )
 
 
-    def create_guarded_openai_agents_file_writer_tool(
-        *,
-        firewall: AgentFirewall,
-        name: str = "write_file",
-        description: str = (
-            "Write content to a local file through AgentFirewall-guarded filesystem enforcement."
-        ),
-        source: str = "openai_agents.file",
-        writer: Callable[..., Any] | None = None,
-        encoding: str = "utf-8",
-        write_kwargs: Mapping[str, Any] | None = None,
-    ) -> Any:
-        """Create a guarded file writer tool for OpenAI Agents."""
-        return OpenAIAgentsGuardedToolBuilder(firewall=firewall).create_file_writer_tool(
-            name=name,
-            description=description,
-            source=source,
-            writer=writer,
-            encoding=encoding,
-            write_kwargs=write_kwargs,
-        )
+def create_guarded_openai_agents_file_writer_tool(
+    *,
+    firewall: AgentFirewall,
+    name: str = "write_file",
+    description: str = (
+        "Write content to a local file through AgentFirewall-guarded filesystem enforcement."
+    ),
+    source: str = "openai_agents.file",
+    writer: Callable[..., Any] | None = None,
+    encoding: str = "utf-8",
+    write_kwargs: Mapping[str, Any] | None = None,
+) -> Any:
+    """Create a guarded file writer tool for OpenAI Agents."""
+    return OpenAIAgentsGuardedToolBuilder(firewall=firewall).create_file_writer_tool(
+        name=name,
+        description=description,
+        source=source,
+        writer=writer,
+        encoding=encoding,
+        write_kwargs=write_kwargs,
+    )
 
 
 __all__ = [
     "OpenAIAgentsEventTranslator",
     "OpenAIAgentsFirewallHooks",
-        "OpenAIAgentsGuardedToolBuilder",
+    "OpenAIAgentsGuardedToolBuilder",
     "create_firewalled_openai_agents_agent",
     "create_guarded_openai_agents_function_tool",
-        "create_guarded_openai_agents_shell_tool",
-        "create_guarded_openai_agents_http_tool",
-        "create_guarded_openai_agents_file_reader_tool",
-        "create_guarded_openai_agents_file_writer_tool",
+    "create_guarded_openai_agents_shell_tool",
+    "create_guarded_openai_agents_http_tool",
+    "create_guarded_openai_agents_file_reader_tool",
+    "create_guarded_openai_agents_file_writer_tool",
     "get_openai_agents_adapter_spec",
 ]
-        "create_firewalled_openai_agents_agent",
-        "create_guarded_openai_agents_function_tool",
-        "get_openai_agents_adapter_spec",
-    ]

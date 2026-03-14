@@ -70,9 +70,10 @@
     ],
     "expected_status": "completed",
     "expected_final_action": "allow",
-    "expected_event_kinds": ["prompt", "tool_call"],
-    "expected_action_sequence": ["allow", "allow"],
-    "final_response": "/home/user"
+    "expected_event_kinds": ["prompt", "tool_call", "tool_call", "command"],
+    "expected_action_sequence": ["allow", "review", "allow", "allow"],
+    "final_response": "/home/user",
+    "approval_outcome": "approve"
   },
   {
     "name": "dangerous_command_blocked",
@@ -91,9 +92,10 @@
     ],
     "expected_status": "blocked",
     "expected_final_action": "block",
-    "expected_event_kinds": ["prompt", "tool_call", "command"],
-    "expected_action_sequence": ["allow", "allow", "block"],
-    "final_response": null
+    "expected_event_kinds": ["prompt", "tool_call", "tool_call", "command"],
+    "expected_action_sequence": ["allow", "review", "allow", "block"],
+    "final_response": null,
+    "approval_outcome": "approve"
   },
   {
     "name": "sensitive_file_access_blocked",
@@ -154,10 +156,11 @@
       }
     ],
     "expected_status": "completed",
-    "expected_final_action": "log",
+    "expected_final_action": "allow",
     "expected_event_kinds": ["prompt", "tool_call", "command"],
-    "expected_action_sequence": ["log", "log", "log"],
-    "final_response": "file1.txt\nfile2.txt"
+    "expected_action_sequence": ["allow", "log", "allow"],
+    "final_response": "file1.txt\nfile2.txt",
+    "log_only": true
   },
   {
     "name": "nested_side_effects",
@@ -194,8 +197,8 @@
     ],
     "expected_status": "completed",
     "expected_final_action": "allow",
-    "expected_event_kinds": ["prompt", "tool_call", "file_access", "file_access", "http_request"],
-    "expected_action_sequence": ["allow", "allow", "allow", "allow", "allow"],
+    "expected_event_kinds": ["prompt", "tool_call", "file_access", "tool_call", "file_access", "tool_call", "http_request"],
+    "expected_action_sequence": ["allow", "allow", "allow", "allow", "allow", "allow", "allow"],
     "final_response": "uploaded successfully"
   }
 ]
