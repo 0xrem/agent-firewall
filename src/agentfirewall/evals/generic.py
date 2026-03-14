@@ -1,4 +1,4 @@
-"""Local LangGraph eval runner for AgentFirewall."""
+"""Local generic-wrapper eval runner for AgentFirewall."""
 
 from __future__ import annotations
 
@@ -14,49 +14,23 @@ from ..approval import ApprovalHandler, ApprovalOutcome, ApprovalResponse
 from ..audit import InMemoryAuditSink, export_audit_trace
 from ..config import FirewallConfig
 from ..exceptions import FirewallViolation, ReviewRequired
-from ..firewall import create_firewall
-from ..langgraph import (
-    create_agent,
-    create_file_reader_tool,
-    create_file_writer_tool,
-    create_http_tool,
-    create_shell_tool,
-)
+from ..generic import create_generic_runtime_bundle
+from ..policy_packs import named_policy_pack
 from .models import EvalRunStatus, EvaluationResult, EvaluationSummary
-
-try:
-    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
-    from langchain_core.messages import AIMessage
-    from langchain_core.tools import tool
-except ImportError as exc:  # pragma: no cover - optional dependency guard
-    raise ImportError(
-        "LangGraph evals require optional dependencies. "
-        "Install with `pip install agentfirewall[langgraph]`."
-    ) from exc
-
-
-class ToolCallingFakeModel(GenericFakeChatModel):
-    """Fake model that works with tool-calling agent tests and evals."""
-
-    def bind_tools(self, tools, *, tool_choice=None, **kwargs):
-        return self
 
 
 @dataclass(slots=True)
-class LangGraphEvalCase:
-    """Serializable LangGraph eval case."""
+class GenericEvalCase:
+    """Serializable eval case for the low-level generic wrapper path."""
 
     name: str
-    prompt: str
+    steps: list[dict[str, Any]] = field(default_factory=list)
     task: str = ""
     workflow_goal: str = ""
-    model_messages: list[dict[str, Any]] = field(default_factory=list)
-    tool_calls: list[dict[str, Any]] = field(default_factory=list)
     expected_status: EvalRunStatus | str = EvalRunStatus.COMPLETED
     expected_final_action: str = "allow"
     expected_event_kinds: list[str] = field(default_factory=list)
     expected_action_sequence: list[str] = field(default_factory=list)
-    final_response: str = "done"
     approval_outcome: ApprovalOutcome | str | None = None
     approval_reason: str = ""
     log_only: bool = False
@@ -67,12 +41,13 @@ class LangGraphEvalCase:
         if isinstance(self.approval_outcome, str):
             self.approval_outcome = ApprovalOutcome(self.approval_outcome)
 
+
 def _default_case_resource() -> Traversable:
-    return resources.files("agentfirewall.evals").joinpath("cases/langgraph_cases.json")
+    return resources.files("agentfirewall.evals").joinpath("cases/generic_cases.json")
 
 
-def load_langgraph_eval_cases(path: str | Traversable | None = None) -> list[LangGraphEvalCase]:
-    """Load LangGraph eval cases from JSON."""
+def load_generic_eval_cases(path: str | Traversable | None = None) -> list[GenericEvalCase]:
+    """Load generic-wrapper eval cases from JSON."""
 
     if path is None:
         payload = json.loads(_default_case_resource().read_text(encoding="utf-8"))
@@ -83,27 +58,10 @@ def load_langgraph_eval_cases(path: str | Traversable | None = None) -> list[Lan
         else:
             with open(target, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
-    return [LangGraphEvalCase(**case) for case in payload]
+    return [GenericEvalCase(**case) for case in payload]
 
 
-def _build_model(case: LangGraphEvalCase) -> ToolCallingFakeModel:
-    messages: list[AIMessage] = []
-    if case.model_messages:
-        for payload in case.model_messages:
-            messages.append(
-                AIMessage(
-                    content=str(payload.get("content", "")),
-                    tool_calls=list(payload.get("tool_calls", [])),
-                )
-            )
-    else:
-        if case.tool_calls:
-            messages.append(AIMessage(content="", tool_calls=case.tool_calls))
-        messages.append(AIMessage(content=case.final_response))
-    return ToolCallingFakeModel(messages=iter(messages))
-
-
-def _make_approval_handler(case: LangGraphEvalCase) -> ApprovalHandler | None:
+def _make_approval_handler(case: GenericEvalCase) -> ApprovalHandler | None:
     if case.approval_outcome is None:
         return None
 
@@ -146,59 +104,73 @@ def _fake_http_opener(request, **kwargs):
 
 
 def _fake_file_opener(path, mode="r", **kwargs):
+    if any(flag in mode for flag in ("w", "a", "+", "x")):
+        return io.StringIO()
     return io.StringIO("README CONTENT")
 
 
-def _fake_file_writer(path, content, **kwargs):
-    return None
+def _register_bundle_tools(bundle) -> None:
+    bundle.register_tool("status", lambda message: f"status:{message}")
+    bundle.register_tool(
+        "shell",
+        lambda command: bundle.command_runner.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip(),
+    )
+    bundle.register_tool(
+        "read_file",
+        lambda path: bundle.file_access.open(path, "r").read(),
+    )
+
+    def write_file(path: str, content: str) -> str:
+        handle = bundle.file_access.open(path, "w")
+        handle.write(content)
+        if hasattr(handle, "close"):
+            handle.close()
+        return f"wrote {len(content)} chars to {path}"
+
+    bundle.register_tool("write_file", write_file)
+    bundle.register_tool(
+        "http_request",
+        lambda url, method="GET": bundle.http_client.request(
+            url,
+            method=method,
+        ).read().decode("utf-8"),
+    )
 
 
-def run_langgraph_eval_case(case: LangGraphEvalCase) -> EvaluationResult:
-    """Run one LangGraph eval case locally."""
-
-    @tool
-    def status(message: str) -> str:
-        """Return a status message."""
-
-        return f"status:{message}"
+def run_generic_eval_case(case: GenericEvalCase) -> EvaluationResult:
+    """Run one low-level generic-wrapper eval case locally."""
 
     audit_sink = InMemoryAuditSink()
-    firewall = create_firewall(
+    bundle = create_generic_runtime_bundle(
         config=FirewallConfig(
             name=f"eval:{case.name}",
             log_only=case.log_only,
         ),
+        policy_pack=named_policy_pack("default", trusted_hosts=("api.openai.com",)),
         audit_sink=audit_sink,
         approval_handler=_make_approval_handler(case),
+        runner=_fake_shell_runner,
+        http_opener=_fake_http_opener,
+        file_opener=_fake_file_opener,
+        tool_call_id_factory=lambda name, args, kwargs: f"call_eval_{name}",
     )
-    agent = create_agent(
-        model=_build_model(case),
-        tools=[
-            status,
-            create_shell_tool(
-                firewall=firewall,
-                runner=_fake_shell_runner,
-            ),
-            create_http_tool(
-                firewall=firewall,
-                opener=_fake_http_opener,
-            ),
-            create_file_reader_tool(
-                firewall=firewall,
-                opener=_fake_file_opener,
-            ),
-            create_file_writer_tool(
-                firewall=firewall,
-                writer=_fake_file_writer,
-            ),
-        ],
-        firewall=firewall,
-    )
+    _register_bundle_tools(bundle)
 
     status_value = EvalRunStatus.ERROR
     detail = ""
     try:
-        agent.invoke({"messages": [{"role": "user", "content": case.prompt}]})
+        for step in case.steps:
+            bundle.dispatch(
+                str(step["tool"]),
+                *tuple(step.get("args", ())),
+                **dict(step.get("kwargs", {})),
+            )
         status_value = EvalRunStatus.COMPLETED
     except ReviewRequired as exc:
         status_value = EvalRunStatus.REVIEW_REQUIRED
@@ -233,6 +205,7 @@ def run_langgraph_eval_case(case: LangGraphEvalCase) -> EvaluationResult:
             f"observed_event_kinds={observed_event_kinds}, "
             f"observed_actions={observed_actions}"
         )
+
     return EvaluationResult(
         name=case.name,
         task=case.task,
@@ -252,19 +225,19 @@ def run_langgraph_eval_case(case: LangGraphEvalCase) -> EvaluationResult:
     )
 
 
-def run_langgraph_eval_suite(
+def run_generic_eval_suite(
     path: str | Traversable | None = None,
 ) -> EvaluationSummary:
-    """Run a LangGraph eval suite from a JSON file."""
+    """Run the packaged generic-wrapper eval suite."""
 
-    cases = load_langgraph_eval_cases(path)
+    cases = load_generic_eval_cases(path)
     return EvaluationSummary(
-        results=[run_langgraph_eval_case(case) for case in cases]
+        results=[run_generic_eval_case(case) for case in cases]
     )
 
 
 def main() -> None:
-    summary = run_langgraph_eval_suite()
+    summary = run_generic_eval_suite()
     print(json.dumps(summary.to_dict(), indent=2, sort_keys=True))
 
 
