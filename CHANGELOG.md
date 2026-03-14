@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.0 - 2026-03-14
+
+Second official adapter release. OpenAI Agents SDK now joins LangGraph as an official, release-gated AgentFirewall adapter on a deliberately narrow `function_tool`-first boundary.
+
+### New capabilities
+
+- Promoted `agentfirewall.openai_agents` into the official adapter registry with shared conformance validation, packaged eval expectations, and release-gate coverage.
+- Expanded the OpenAI Agents adapter contract to declare official guarded shell, file-read, file-write, and outbound HTTP helper surfaces alongside prompt and tool-call interception.
+- Updated the runtime support inventory so `openai_agents` now exports as an official adapter while `generic_wrappers` remains the preview runtime path.
+- Added official-adapter regression coverage for OpenAI Agents release gates, runtime-context requirements, file-write evidence, and log-only semantics.
+
+### Documentation and release evidence
+
+- Updated README, supported-path, product-status, roadmap, and adapter-capability docs for the `1.2.0` support contract.
+- Refreshed the runtime support manifest so docs and GitHub Pages can reflect the new two-adapter shipping position.
+- Recorded the `1.2.0` release-readiness position with LangGraph and OpenAI Agents as the two official runtime adapters.
+
 ## 1.0.0 - 2026-03-12
 
 Stable release. The LangGraph runtime path is the officially supported 1.0.0 adapter.

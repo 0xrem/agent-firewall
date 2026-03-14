@@ -6,16 +6,17 @@ Build one runtime firewall core that can protect tool-using AI systems across mu
 
 ## Current Shipping Position
 
-`1.1.0` ships one official runtime path: LangGraph.
+`1.2.0` ships two official runtime paths: LangGraph and OpenAI Agents SDK.
 
 It also documents preview runtime support for:
 
-- `openai_agents`
 - `generic_wrappers`
 
 This is deliberate.
 
-The first job is to prove that the core event model, enforcement surfaces, and audit traces are stable enough that a second adapter can reuse them without special-casing the product around LangGraph.
+The first job was to prove that the core event model, enforcement surfaces, and audit traces were stable enough that a second adapter could reuse them without special-casing the product around LangGraph.
+
+That proof now exists in the shipping product.
 
 ## Planning Rule
 
@@ -140,6 +141,11 @@ Detailed execution plan:
 - keep policy and audit behavior aligned with LangGraph
 - start with OpenAI Agents SDK as the `function_tool-first` candidate path
 - avoid hosted tools, MCP, and handoffs until the local evidence package exists
+
+Status:
+
+- complete in `1.2.0`
+- OpenAI Agents SDK is now the second official adapter on the documented narrow boundary
 
 Detailed execution plan:
 

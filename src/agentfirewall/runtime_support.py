@@ -148,32 +148,9 @@ def get_generic_preview_runtime_spec() -> RuntimeAdapterSpec:
 
 
 def get_openai_agents_preview_runtime_spec() -> RuntimeAdapterSpec:
-    """Return the preview support contract for the OpenAI Agents SDK path."""
+    """Return the OpenAI Agents support contract kept for compatibility."""
 
-    adapter_spec = get_openai_agents_adapter_spec()
-    return RuntimeAdapterSpec(
-        name=adapter_spec.name,
-        module=adapter_spec.module,
-        support_level=adapter_spec.support_level,
-        capabilities=capability_set(
-            AdapterCapability.PROMPT_INSPECTION,
-            AdapterCapability.TOOL_CALL_INTERCEPTION,
-            AdapterCapability.SHELL_ENFORCEMENT,
-            AdapterCapability.FILE_READ_ENFORCEMENT,
-            AdapterCapability.FILE_WRITE_ENFORCEMENT,
-            AdapterCapability.HTTP_ENFORCEMENT,
-            AdapterCapability.RUNTIME_CONTEXT_CORRELATION,
-            AdapterCapability.REVIEW_SEMANTICS,
-            AdapterCapability.LOG_ONLY_SEMANTICS,
-        ),
-        notes=(
-            "Preview OpenAI Agents SDK support path. Prompt and function_tool "
-            "interception come from the adapter hooks, while shell, file, and "
-            "HTTP enforcement are available through the official helper tool "
-            "builders and runtime bundle. Hosted tools, MCP servers, and "
-            "handoffs remain out of scope."
-        ),
-    )
+    return get_openai_agents_adapter_spec()
 
 
 _PREVIEW_RUNTIMES: dict[str, PreviewRuntimeDefinition] = {
@@ -202,40 +179,6 @@ _PREVIEW_RUNTIMES: dict[str, PreviewRuntimeDefinition] = {
                 "blocked_sensitive_read": "guarded_file_blocks_sensitive_read",
                 "blocked_sensitive_write": "guarded_file_write_blocks_sensitive_path",
                 "log_only_workflow": "log_only_shell_then_blocked_http",
-            },
-        ),
-    ),
-    "openai_agents": PreviewRuntimeDefinition(
-        spec=get_openai_agents_preview_runtime_spec(),
-        eval_runner="agentfirewall.evals:run_openai_agents_eval_suite",
-        eval_expectations=EvalSuiteExpectations(
-            total=9,
-            status_counts={
-                "completed": 4,
-                "blocked": 3,
-                "review_required": 2,
-            },
-            task_counts={
-                "benign_calculation": 1,
-                "prompt_injection_attempt": 1,
-                "shell_access": 1,
-                "shell_access_approved": 1,
-                "dangerous_command_attempt": 1,
-                "sensitive_file_attempt": 1,
-                "untrusted_host_attempt": 1,
-                "log_only_demonstration": 1,
-                "nested_side_effects_correlation": 1,
-            },
-            named_cases={
-                "safe_function_tool": "safe_function_tool",
-                "prompt_review": "prompt_injection_review",
-                "shell_review": "shell_tool_review",
-                "approved_shell": "shell_tool_approved",
-                "blocked_command": "dangerous_command_blocked",
-                "blocked_sensitive_read": "sensitive_file_access_blocked",
-                "blocked_http": "untrusted_host_blocked",
-                "log_only_workflow": "log_only_workflow",
-                "nested_side_effects": "nested_side_effects",
             },
         ),
     ),

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document explains how AgentFirewall should turn the current OpenAI Agents SDK skeleton into a real second-adapter candidate without drifting away from the main product goal.
+This document records how AgentFirewall turned the OpenAI Agents SDK path into the second official adapter without drifting away from the main product goal.
 
 The goal is not to support every OpenAI Agents feature immediately.
 
@@ -10,7 +10,7 @@ The goal is to prove that the shared runtime firewall core can protect a second 
 
 ## Current State
 
-The repo already contains an experimental OpenAI Agents SDK adapter skeleton:
+The repo now contains the official OpenAI Agents SDK adapter on the documented `function_tool-first` boundary:
 
 - [`src/agentfirewall/integrations/openai_agents.py`](../../src/agentfirewall/integrations/openai_agents.py)
 - [`src/agentfirewall/openai_agents.py`](../../src/agentfirewall/openai_agents.py)
@@ -24,14 +24,15 @@ What already works:
 - nested runtime-context propagation when a wrapped function tool calls shared enforcers like `GuardedSubprocessRunner`
 - official helper builders for shell, file, and HTTP
 - a grouped `create_runtime_bundle(...)` entrypoint on top of one firewall
-- packaged local evals and preview-runtime inventory export
+- packaged local evals and official-adapter inventory export
 - local smoke tests using a fake model, with no network calls and no API key required
 
-What is not done yet:
+What `1.2.0` finished:
 
-- release-gate expectations
-- conformance and promotion decision for official-adapter status
-- final `1.2` documentation pass for the promotion/no-promotion decision
+- official adapter registry promotion
+- explicit release-gate expectations
+- conformance validation on the shared adapter kit
+- final documentation pass for the supported and unsupported boundary
 
 ## Why OpenAI Agents
 
@@ -163,16 +164,16 @@ Ship:
 Important rule:
 - do not promote the adapter before release-gate expectations exist
 
-**Status:** 🔄 In Progress
+**Status:** ✅ Complete
 
 ### Tasks
 
 - [x] Create example scripts (`examples/openai_agents_demo.py`, `examples/openai_agents_quickstart.py`)
 - [x] Add OpenAI Agents test file (`tests/test_openai_agents_integration.py`)
 - [x] Update README with OpenAI Agents quickstart
-- [x] Update `SUPPORTED_PATH.md` with OpenAI Agents preview status
-- [x] Export preview runtime support through `agentfirewall.runtime_support`
-- [ ] Add explicit release-gate expectations for promotion
+- [x] Update `SUPPORTED_PATH.md` with the OpenAI Agents support boundary
+- [x] Export runtime support through `agentfirewall.runtime_support`
+- [x] Add explicit release-gate expectations for promotion
 
 ## Completed Work
 
@@ -202,9 +203,9 @@ Important rule:
 - [x] Update README.md with OpenAI Agents examples
 - [x] Add quickstart example script
 - [x] Add demo example script
-- [x] Update README.zh-CN.md with OpenAI Agents preview notes
+- [x] Update README.zh-CN.md with OpenAI Agents support notes
 - [x] Update pyproject.toml with openai-agents optional dependency
-- do not add OpenAI Agents to the official adapter registry until the evidence package is complete
+- [x] Add OpenAI Agents to the official adapter registry once the evidence package is complete
 
 Definition of done:
 
@@ -226,6 +227,14 @@ Promotion criteria:
 Definition of done:
 
 - either OpenAI Agents is promoted into the official adapter registry, or it remains clearly labeled as an experimental candidate with explicit reasons
+
+**Status:** ✅ Complete
+
+Promotion decision:
+
+- promote OpenAI Agents SDK into the official adapter registry for `1.2.0`
+- keep the supported boundary narrow and explicit
+- do not claim hosted tools, MCP servers, handoffs, or `Agent.as_tool()` support yet
 
 ## Testing Strategy
 

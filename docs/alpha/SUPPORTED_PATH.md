@@ -1,6 +1,6 @@
 # Supported Path
 
-This document defines the supported API surface for AgentFirewall `1.1.0`.
+This document defines the supported API surface for AgentFirewall `1.2.0`.
 
 It is narrower than the full package contents on purpose.
 
@@ -24,6 +24,15 @@ Use `agentfirewall.langgraph` for the supported runtime path:
 - `create_file_reader_tool(...)`
 - `create_file_writer_tool(...)`
 
+Use `agentfirewall.openai_agents` for the supported OpenAI Agents SDK path:
+
+- `create_agent(...)`
+- `create_runtime_bundle(...)`
+- `create_shell_tool(...)`
+- `create_http_tool(...)`
+- `create_file_reader_tool(...)`
+- `create_file_writer_tool(...)`
+
 Use `agentfirewall.approval` for the documented approval helper path:
 
 - `StaticApprovalHandler`
@@ -33,45 +42,18 @@ Use `agentfirewall.approval` for the documented approval helper path:
 
 Lower-level helpers under modules such as `agentfirewall.enforcers`, `agentfirewall.audit`, `agentfirewall.policy_packs`, and `agentfirewall.integrations.langgraph` are still useful, but they are advanced usage rather than the primary supported entrypoint.
 
-## Documented Preview Runtime Paths
-
-`1.1.0` also documents two preview runtime paths.
-
-They are deliberately real enough to evaluate locally, but they are not part of the official adapter contract yet.
-
-### Preview Runtime: OpenAI Agents SDK
-
-The repo contains an experimental OpenAI Agents SDK path under `agentfirewall.openai_agents`:
-
-```python
-from agentfirewall import FirewallConfig, create_firewall
-from agentfirewall.openai_agents import create_agent, create_shell_tool
-
-firewall = create_firewall(
-    config=FirewallConfig(name="demo"),
-)
-
-shell_tool = create_shell_tool(firewall=firewall)
-
-agent = create_agent(
-    agent=your_openai_agent,
-    firewall=firewall,
-)
-```
-
-Current boundary:
+Supported OpenAI Agents boundary:
 
 - function-tool-first only
 - local helper tools and a `create_runtime_bundle(...)` entrypoint exist for shell, file, and HTTP
 - packaged local evals are available under `python -m agentfirewall.evals.openai_agents`
-- hosted tools, MCP servers, and handoffs are still out of scope
-- this path is not yet part of the official supported adapter contract
+- hosted tools, MCP servers, `Agent.as_tool()`, and handoffs are still out of scope
 
-Install with:
+## Documented Preview Runtime Paths
 
-```bash
-python -m pip install agentfirewall[openai-agents]
-```
+`1.2.0` keeps one preview runtime path.
+
+It is deliberately real enough to evaluate locally, but it is not part of the official adapter contract yet.
 
 ### Preview Runtime: Generic Wrappers
 
@@ -216,12 +198,12 @@ python -m agentfirewall.runtime_support --include-evidence
 
 For `log-only` flows, trace entries preserve `decision_metadata.original_action` so a user can see whether a step would have been reviewed or blocked before turning on enforcement.
 
-The packaged LangGraph eval suite covers 19 task-oriented local cases, the generic preview suite covers 7 local cases, and the OpenAI Agents preview suite covers 9 local cases.
+The packaged LangGraph eval suite covers 19 task-oriented local cases, the OpenAI Agents official suite covers 9 local cases, and the generic preview suite covers 7 local cases.
 
 ## What This Contract Does Not Promise Yet
 
 - a built-in reviewer UI
 - a centralized approval service
-- a second officially supported runtime adapter
+- official runtime adapters beyond LangGraph and OpenAI Agents SDK
 - hosted OpenAI tools, MCP servers, or handoffs
 - production-ready false-positive tuning

@@ -100,21 +100,21 @@ if OPENAI_AGENTS_AVAILABLE:
 
 
 class OpenAIAgentsAdapterContractTests(unittest.TestCase):
-    def test_openai_agents_adapter_declares_experimental_function_tool_scope(self) -> None:
+    def test_openai_agents_adapter_declares_supported_function_tool_scope(self) -> None:
         spec = get_openai_agents_adapter_spec()
 
         self.assertEqual(spec.name, "openai_agents")
         self.assertEqual(spec.module, "agentfirewall.openai_agents")
-        self.assertEqual(spec.support_level, AdapterSupportLevel.EXPERIMENTAL)
+        self.assertEqual(spec.support_level, AdapterSupportLevel.SUPPORTED)
         self.assertTrue(spec.supports(AdapterCapability.PROMPT_INSPECTION))
         self.assertTrue(spec.supports(AdapterCapability.TOOL_CALL_INTERCEPTION))
+        self.assertTrue(spec.supports(AdapterCapability.SHELL_ENFORCEMENT))
+        self.assertTrue(spec.supports(AdapterCapability.FILE_READ_ENFORCEMENT))
+        self.assertTrue(spec.supports(AdapterCapability.FILE_WRITE_ENFORCEMENT))
+        self.assertTrue(spec.supports(AdapterCapability.HTTP_ENFORCEMENT))
         self.assertTrue(spec.supports(AdapterCapability.RUNTIME_CONTEXT_CORRELATION))
         self.assertTrue(spec.supports(AdapterCapability.REVIEW_SEMANTICS))
         self.assertTrue(spec.supports(AdapterCapability.LOG_ONLY_SEMANTICS))
-        self.assertFalse(spec.supports(AdapterCapability.SHELL_ENFORCEMENT))
-        self.assertFalse(spec.supports(AdapterCapability.FILE_READ_ENFORCEMENT))
-        self.assertFalse(spec.supports(AdapterCapability.FILE_WRITE_ENFORCEMENT))
-        self.assertFalse(spec.supports(AdapterCapability.HTTP_ENFORCEMENT))
 
 
 @unittest.skipUnless(OPENAI_AGENTS_AVAILABLE, "OpenAI Agents optional dependencies are not installed.")

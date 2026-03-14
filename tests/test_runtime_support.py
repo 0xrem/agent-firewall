@@ -6,6 +6,7 @@ import unittest
 from agentfirewall.integrations import AdapterCapability, AdapterSupportLevel
 from agentfirewall.runtime_support import (
     RuntimeSupportKind,
+    collect_official_adapter_evidence,
     collect_preview_runtime_evidence,
     export_preview_runtime_inventory,
     export_runtime_support_manifest,
@@ -44,29 +45,19 @@ class RuntimeSupportInventoryTests(unittest.TestCase):
 
         self.assertEqual(
             tuple(runtime.name for runtime in runtimes),
-            ("generic_wrappers", "openai_agents"),
+            ("generic_wrappers",),
         )
         names = {item["name"]: item for item in inventory}
-        self.assertEqual(set(names), {"generic_wrappers", "openai_agents"})
+        self.assertEqual(set(names), {"generic_wrappers"})
         self.assertEqual(
             names["generic_wrappers"]["kind"],
             RuntimeSupportKind.PREVIEW_RUNTIME.value,
         )
-        self.assertEqual(
-            names["openai_agents"]["kind"],
-            RuntimeSupportKind.PREVIEW_RUNTIME.value,
-        )
         self.assertTrue(names["generic_wrappers"]["has_eval_suite"])
-        self.assertTrue(names["openai_agents"]["has_eval_suite"])
         self.assertTrue(names["generic_wrappers"]["has_eval_expectations"])
-        self.assertTrue(names["openai_agents"]["has_eval_expectations"])
         self.assertEqual(
             names["generic_wrappers"]["eval_runner"],
             "agentfirewall.evals:run_generic_eval_suite",
-        )
-        self.assertEqual(
-            names["openai_agents"]["eval_runner"],
-            "agentfirewall.evals:run_openai_agents_eval_suite",
         )
 
     def test_combined_runtime_support_inventory_distinguishes_official_and_preview_paths(
@@ -86,7 +77,7 @@ class RuntimeSupportInventoryTests(unittest.TestCase):
         )
         self.assertEqual(
             names["openai_agents"]["kind"],
-            RuntimeSupportKind.PREVIEW_RUNTIME.value,
+            RuntimeSupportKind.OFFICIAL_ADAPTER.value,
         )
 
     def test_combined_runtime_support_matrix_carries_kind_and_capabilities(self) -> None:
@@ -96,7 +87,7 @@ class RuntimeSupportInventoryTests(unittest.TestCase):
         self.assertEqual(set(names), {"langgraph", "generic_wrappers", "openai_agents"})
         self.assertEqual(names["langgraph"]["kind"], "official_adapter")
         self.assertEqual(names["generic_wrappers"]["kind"], "preview_runtime")
-        self.assertEqual(names["openai_agents"]["kind"], "preview_runtime")
+        self.assertEqual(names["openai_agents"]["kind"], "official_adapter")
         self.assertEqual(names["generic_wrappers"]["prompt_inspection"], "not_supported")
         self.assertEqual(
             names["generic_wrappers"]["tool_call_interception"],
@@ -138,20 +129,24 @@ class RuntimeSupportInventoryTests(unittest.TestCase):
             "guarded_http_blocks_untrusted_host",
         )
 
-    def test_openai_preview_runtime_declares_helper_surface_support(self) -> None:
-        runtime = get_preview_runtime("openai_agents")
+    def test_openai_agents_support_contract_is_kept_as_compatibility_shim(self) -> None:
+        spec = get_openai_agents_preview_runtime_spec()
 
-        self.assertEqual(runtime.spec, get_openai_agents_preview_runtime_spec())
-        self.assertEqual(runtime.spec.support_level, AdapterSupportLevel.EXPERIMENTAL)
-        self.assertTrue(runtime.spec.supports(AdapterCapability.PROMPT_INSPECTION))
-        self.assertTrue(runtime.spec.supports(AdapterCapability.TOOL_CALL_INTERCEPTION))
-        self.assertTrue(runtime.spec.supports(AdapterCapability.SHELL_ENFORCEMENT))
-        self.assertTrue(runtime.spec.supports(AdapterCapability.FILE_READ_ENFORCEMENT))
-        self.assertTrue(runtime.spec.supports(AdapterCapability.FILE_WRITE_ENFORCEMENT))
-        self.assertTrue(runtime.spec.supports(AdapterCapability.HTTP_ENFORCEMENT))
-        self.assertTrue(runtime.spec.supports(AdapterCapability.RUNTIME_CONTEXT_CORRELATION))
-        self.assertTrue(runtime.spec.supports(AdapterCapability.REVIEW_SEMANTICS))
-        self.assertTrue(runtime.spec.supports(AdapterCapability.LOG_ONLY_SEMANTICS))
+        self.assertEqual(spec.name, "openai_agents")
+        self.assertEqual(spec.support_level, AdapterSupportLevel.SUPPORTED)
+        self.assertTrue(spec.supports(AdapterCapability.PROMPT_INSPECTION))
+        self.assertTrue(spec.supports(AdapterCapability.TOOL_CALL_INTERCEPTION))
+        self.assertTrue(spec.supports(AdapterCapability.SHELL_ENFORCEMENT))
+        self.assertTrue(spec.supports(AdapterCapability.FILE_READ_ENFORCEMENT))
+        self.assertTrue(spec.supports(AdapterCapability.FILE_WRITE_ENFORCEMENT))
+        self.assertTrue(spec.supports(AdapterCapability.HTTP_ENFORCEMENT))
+        self.assertTrue(spec.supports(AdapterCapability.RUNTIME_CONTEXT_CORRELATION))
+        self.assertTrue(spec.supports(AdapterCapability.REVIEW_SEMANTICS))
+        self.assertTrue(spec.supports(AdapterCapability.LOG_ONLY_SEMANTICS))
+
+    def test_openai_agents_is_no_longer_listed_as_preview_runtime(self) -> None:
+        with self.assertRaises(KeyError):
+            get_preview_runtime("openai_agents")
 
     def test_runtime_support_manifest_exports_inventory_matrix_and_preview_evidence(self) -> None:
         manifest = export_runtime_support_manifest(include_evidence=True)
@@ -169,9 +164,10 @@ class RuntimeSupportInventoryTests(unittest.TestCase):
             {"langgraph", "generic_wrappers", "openai_agents"},
         )
         evidence = manifest["evidence"]
+        official = {item["name"]: item for item in evidence["official_adapters"]}
+        self.assertEqual(set(official), {"langgraph", "openai_agents"})
         preview = {item["name"]: item for item in evidence["preview_runtimes"]}
         self.assertIn("generic_wrappers", preview)
-        self.assertIn("openai_agents", preview)
         self.assertTrue(preview["generic_wrappers"]["evaluated"])
         self.assertTrue(preview["generic_wrappers"]["ok"])
         self.assertEqual(preview["generic_wrappers"]["summary"]["total"], 7)
@@ -183,13 +179,13 @@ class RuntimeSupportInventoryTests(unittest.TestCase):
         self.assertIn("conformance", preview["generic_wrappers"])
         self.assertIn("eval_expectations", preview["generic_wrappers"])
 
-    def test_collect_preview_runtime_evidence_returns_openai_summary_when_available(self) -> None:
-        evidence = collect_preview_runtime_evidence("openai_agents")
+    def test_collect_official_adapter_evidence_returns_openai_summary_when_available(self) -> None:
+        evidence = collect_official_adapter_evidence("openai_agents")
 
         self.assertEqual(evidence["name"], "openai_agents")
         self.assertEqual(
             evidence["kind"],
-            RuntimeSupportKind.PREVIEW_RUNTIME.value,
+            RuntimeSupportKind.OFFICIAL_ADAPTER.value,
         )
         if evidence["evaluated"]:
             self.assertTrue(evidence["ok"])

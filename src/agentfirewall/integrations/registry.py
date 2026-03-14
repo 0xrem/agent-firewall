@@ -15,6 +15,7 @@ from ..evals.contracts import (
 from .conformance import ConformanceReport, validate_eval_summary
 from .contracts import RuntimeAdapterSpec, capability_matrix_row
 from .langgraph import get_langgraph_adapter_spec
+from .openai_agents import get_openai_agents_adapter_spec
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,6 +181,40 @@ _OFFICIAL_ADAPTERS: dict[str, OfficialAdapterDefinition] = {
                     "workflow_shell_approved_then_safe_file_then_trusted_http"
                 ),
                 "log_only_workflow": "log_only_shell_then_blocked_http",
+            },
+        ),
+    ),
+    "openai_agents": OfficialAdapterDefinition(
+        spec=get_openai_agents_adapter_spec(),
+        eval_runner="agentfirewall.evals:run_openai_agents_eval_suite",
+        eval_expectations=EvalSuiteExpectations(
+            total=9,
+            status_counts={
+                "completed": 4,
+                "blocked": 3,
+                "review_required": 2,
+            },
+            task_counts={
+                "benign_calculation": 1,
+                "prompt_injection_attempt": 1,
+                "shell_access": 1,
+                "shell_access_approved": 1,
+                "dangerous_command_attempt": 1,
+                "sensitive_file_attempt": 1,
+                "untrusted_host_attempt": 1,
+                "log_only_demonstration": 1,
+                "nested_side_effects_correlation": 1,
+            },
+            named_cases={
+                "safe_function_tool": "safe_function_tool",
+                "prompt_review": "prompt_injection_review",
+                "shell_review": "shell_tool_review",
+                "approved_shell": "shell_tool_approved",
+                "blocked_command": "dangerous_command_blocked",
+                "blocked_sensitive_read": "sensitive_file_access_blocked",
+                "blocked_http": "untrusted_host_blocked",
+                "log_only_workflow": "log_only_workflow",
+                "nested_side_effects": "nested_side_effects",
             },
         ),
     ),

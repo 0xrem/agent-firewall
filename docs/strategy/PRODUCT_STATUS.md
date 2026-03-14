@@ -2,21 +2,24 @@
 
 ## Current Stage
 
-AgentFirewall is no longer in the "is this real?" stage.
+AgentFirewall is no longer proving whether the adapter-oriented architecture is real.
 
-It is now in the transition from `1.1` platform hardening to `1.2` multi-runtime proof.
+`1.2.0` ships that proof:
 
-That means:
+- LangGraph is still a stable official adapter
+- OpenAI Agents SDK is now the second official adapter on a narrow, documented support boundary
+- the shared policy, approval, audit, conformance, and runtime-context model now spans two different runtimes
 
-- the first supported user path is real
-- the adapter-oriented core is real enough to validate in code
-- the biggest remaining gaps are adoption breadth and production proof, not whether the product idea makes sense
+That moves the product into a new phase:
+
+- less architecture risk
+- more adoption, evidence, and product-trust work
 
 ## What The Product Can Solve Today
 
 Today the product can reliably solve one narrow but important problem:
 
-- stop dangerous side effects before they happen in the supported LangGraph path
+- stop dangerous side effects before they happen on the documented official runtime paths
 
 More concretely, the current product can:
 
@@ -28,71 +31,54 @@ More concretely, the current product can:
 - block outbound HTTP requests to untrusted hosts
 - preserve audit traces that link side effects back to the originating tool call
 
-This is already useful for:
+This is now available across:
 
-- repository automation
-- incident triage
-- internal tooling agents
-- agent workflows that can actually touch shell, files, or the network
+- LangGraph
+- OpenAI Agents SDK
+- a preview generic-wrapper path for unsupported runtimes
 
 ## Status By Product Pillar
 
 | Pillar | Status | Notes |
 | --- | --- | --- |
-| Stop dangerous side effects before execution | `strong` | LangGraph path is shipped and regression-covered |
+| Stop dangerous side effects before execution | `strong` | Shipped on both official adapters |
 | Shared runtime firewall core | `strong` | Policy, approval, audit, enforcers, and runtime context are adapter-oriented |
-| Adapter contract and release evidence | `strong` | Capability matrix, conformance, eval expectations, and release gate are in-repo |
-| Lightweight non-LangGraph adoption | `partial` | Low-level wrappers exist, now with packaged eval evidence and preview-runtime inventory, but adoption still needs clearer onboarding |
-| Multi-runtime proof | `in_progress` | OpenAI Agents preview support now has helper surfaces, eval evidence, and runtime-support inventory, but the second official adapter is not shipped or release-gated yet |
+| Adapter contract and release evidence | `strong` | Capability matrix, conformance, eval expectations, and release gates exist for both official adapters |
+| Lightweight non-official adoption | `partial` | Generic wrappers exist and are documented, but onboarding can still get easier |
+| Multi-runtime proof | `strong` | OpenAI Agents is now an official release-gated adapter |
 | Production trust across unknown workloads | `early` | False-positive pressure and real deployment evidence still need work |
 
-## How Much Is Left
+## What Is Still Hard
 
-The hard part of "can this become a product?" is no longer the core architecture.
+The hard part is no longer "can this architecture support a second runtime?"
 
-The hard part now is proving three things:
+The hard part is now proving three things:
 
-1. The same firewall model works outside LangGraph.
-2. New users can adopt it without feeling trapped in one framework.
-3. Real workloads can use it without unacceptable review noise.
+1. New users can adopt it without feeling trapped in one framework.
+2. Real workloads can run in `log-only` long enough to build trust before enforcement.
+3. The default policy pack stays useful as coverage grows beyond toy demos.
 
 Put differently:
 
-- foundation risk is much lower than it was at `1.0.0`
-- productization risk is still meaningful
-- market-fit proof is still ahead of us
+- foundation risk is much lower than it was in `1.0.0`
+- adoption friction still matters
+- deployment trust still needs evidence
 
 ## Most Important Remaining Gaps
 
-### 1. Breadth Gap
-
-Need:
-
-- a second official adapter
-- a credible generic wrapper path for unsupported runtimes
-
-Current status:
-
-- the OpenAI Agents SDK now has an experimental `function_tool-first` adapter path with packaged evals, helper surfaces, and runtime-support inventory
-- that candidate still needs release-gate evidence and an explicit promotion decision before it can count as the second official adapter
-
-Why it matters:
-
-- without this, the product still looks framework-local even if the architecture is not
-
-### 2. Adoption Gap
+### 1. Adoption Gap
 
 Need:
 
 - easier onboarding outside the official adapter path
 - more local examples that do not require optional runtime dependencies
-- a clear `log-only` first-run path
+- a clearer `log-only` first-run path for generic wrappers and future runtimes
 
 Why it matters:
 
 - a product can be technically right and still feel too hard to try
 
-### 3. Production Proof Gap
+### 2. Production Proof Gap
 
 Need:
 
@@ -104,17 +90,29 @@ Why it matters:
 
 - runtime security tools win or lose on trust, not just on architecture
 
+### 3. Breadth-After-1.2 Gap
+
+Need:
+
+- a stronger generic-wrapper adoption story
+- the next runtime expansion path, likely MCP-oriented
+- continued discipline so broader support does not outrun evidence
+
+Why it matters:
+
+- `1.2.0` proves the core is reusable, but it does not yet prove broad ecosystem coverage
+
 ## Execution Order From Here
 
-1. Ship `1.1.0` with the adapter contract, preview runtime boundaries, and release evidence clearly documented.
-2. Turn the OpenAI Agents candidate path into a release-gated second-adapter decision, not just another experimental integration.
-3. Keep making the generic wrapper path easier to use without claiming a second official adapter yet.
-4. Expand evals and false-positive pressure around real workflows.
-5. Only then widen into MCP-oriented paths and broader deployment patterns.
+1. Hold the `1.2.0` support contract steady across LangGraph and OpenAI Agents.
+2. Keep lowering adoption friction for unsupported runtimes through generic wrappers.
+3. Expand evals and false-positive pressure around realistic workflows.
+4. Widen into MCP-oriented paths only after the existing contract stays stable.
+5. Explore broader deployment patterns after the event model and support boundary stop moving.
 
-## Current Second-Adapter Candidate
+## What `1.2.0` Actually Shipped
 
-The current `1.2` candidate is OpenAI Agents SDK on a deliberately narrow scope:
+The current second official adapter is OpenAI Agents SDK on a deliberately narrow scope:
 
 - `Agent`
 - local `FunctionTool`
@@ -122,13 +120,15 @@ The current `1.2` candidate is OpenAI Agents SDK on a deliberately narrow scope:
 - function-tool interception before local execution
 - shared `review`, `block`, and `log-only` behavior
 - runtime-context propagation into shared shell, file, and HTTP enforcers
+- official guarded helper builders and a grouped runtime bundle
 
-What still has to happen before that candidate becomes official:
+Still out of scope:
 
-- add release-gate expectations that are strict enough for promotion
-- keep shrinking the unsupported boundary without overstating support
-- prove the preview path stays stable under continued regression pressure
-- make the official promotion decision explicit in docs and registry state
+- hosted tools
+- MCP servers
+- handoffs
+- `Agent.as_tool()`
+- SDK-native `needs_approval` as the primary approval mechanism
 
 Developers working on this track should start with [`OPENAI_AGENTS_ADAPTER_PLAN.md`](./OPENAI_AGENTS_ADAPTER_PLAN.md).
 
@@ -136,9 +136,9 @@ Developers working on this track should start with [`OPENAI_AGENTS_ADAPTER_PLAN.
 
 AgentFirewall is on track if the repo can honestly say all of the following:
 
-- one supported adapter is already stable
+- two supported adapters are stable and release-gated
 - unsupported runtimes can still adopt low-level guarded wrappers safely
-- the second adapter reuses the same policy and audit semantics
+- the same policy and audit semantics hold across both official adapters
 - real users can start in `log-only`, learn from audits, and tighten enforcement later
 
 ## What Would Mean "We Drifted"

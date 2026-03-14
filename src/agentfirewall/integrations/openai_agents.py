@@ -53,17 +53,22 @@ except ImportError:  # pragma: no cover - exercised when optional deps are absen
 OPENAI_AGENTS_ADAPTER_SPEC = RuntimeAdapterSpec(
     name="openai_agents",
     module="agentfirewall.openai_agents",
-    support_level=AdapterSupportLevel.EXPERIMENTAL,
+    support_level=AdapterSupportLevel.SUPPORTED,
     capabilities=capability_set(
         AdapterCapability.PROMPT_INSPECTION,
         AdapterCapability.TOOL_CALL_INTERCEPTION,
+        AdapterCapability.SHELL_ENFORCEMENT,
+        AdapterCapability.FILE_READ_ENFORCEMENT,
+        AdapterCapability.FILE_WRITE_ENFORCEMENT,
+        AdapterCapability.HTTP_ENFORCEMENT,
         AdapterCapability.RUNTIME_CONTEXT_CORRELATION,
         AdapterCapability.REVIEW_SEMANTICS,
         AdapterCapability.LOG_ONLY_SEMANTICS,
     ),
     notes=(
-        "Experimental OpenAI Agents SDK adapter. Current scope is "
-        "function_tool-first and excludes hosted tools, MCP servers, and handoffs."
+        "Official OpenAI Agents SDK adapter. Current support remains "
+        "function_tool-first, with guarded shell, file, and HTTP helper "
+        "surfaces. Hosted tools, MCP servers, and handoffs remain out of scope."
     ),
 )
 

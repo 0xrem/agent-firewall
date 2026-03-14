@@ -28,7 +28,7 @@
 
 只要你的 runtime 能调用工具，prompt injection 就不再只是提示词质量问题，而是执行路径问题。AgentFirewall 以内联方式卡在执行路径里，在 shell、文件、网络或工具副作用**真正发生前**做出 `allow`、`block`、`review` 或 `log` 决策。
 
-`1.1.0` 保持 LangGraph 作为第一个官方 adapter，同时新增了 OpenAI Agents SDK 和 generic guarded wrappers 的预览 runtime 支持。更长期的产品方向会更大一些：把 policy、approval 和 audit 做成同一个共享内核，后续再挂到更多 agent runtime、MCP 集成和其他 tool-calling 系统上，而不是每个框架单独做一套。
+`1.2.0` 现在已经有两条官方 adapter：LangGraph 和 OpenAI Agents SDK。generic guarded wrappers 仍然保留为预览 runtime 路径。更长期的产品方向会更大一些：把 policy、approval 和 audit 做成同一个共享内核，后续再挂到更多 agent runtime、MCP 集成和其他 tool-calling 系统上，而不是每个框架单独做一套。
 
 ## 看看效果
 
@@ -74,7 +74,7 @@ pip install agentfirewall[langgraph]
 python examples/langgraph_quickstart.py
 ```
 
-如果你想体验 OpenAI Agents 的预览支持路径：
+如果你想使用 OpenAI Agents 这条官方 adapter 路径：
 
 ```bash
 pip install agentfirewall[openai-agents]
@@ -140,7 +140,7 @@ agent = create_agent(
 | **文件读写** | 拦截 27 种敏感路径模式 | `.env`、`.aws/*`、`.ssh/*`、`.npmrc`、`.kube/config`、`.git-credentials`、... |
 | **出站 HTTP** | 在请求发出前拦截不可信主机 | 任何不在你信任列表上的主机 |
 
-在当前官方支持的 LangGraph adapter 上，prompt 检查的是每次模型调用前的最新一条用户消息。检索内容和工具输出仍然会在 tool、file、HTTP、command 这些副作用边界被强制检查。
+在当前两条官方 adapter 上，prompt 检查都会在模型执行前评估当前用户输入；检索内容和工具输出仍然会在 tool、file、HTTP、command 这些副作用边界被强制检查。
 
 每个被拦截或审查的副作用事件都包含审计条目，能链接回发起操作的那次工具调用 — 你不仅知道*什么被拦了*，还知道*是哪次 tool call 触发的*。
 
@@ -196,17 +196,17 @@ AgentFirewall
 Side effects（仅在允许时执行）
 ```
 
-AgentFirewall 不是在 runtime 旁边被动扫一眼。它**卡在执行路径上**，在可调用工具的 AI 系统和真正可能造成损害的目标之间。今天官方支持的 runtime 路径是 LangGraph；更长期的设计目标，是把框架差异收敛在 adapter 层里，让 policy、approval、audit 和 guarded execution 这套模型可以被更多 runtime 复用。
+AgentFirewall 不是在 runtime 旁边被动扫一眼。它**卡在执行路径上**，在可调用工具的 AI 系统和真正可能造成损害的目标之间。今天官方支持的 runtime 路径已经有 LangGraph 和 OpenAI Agents SDK，而 generic wrappers 继续作为未官方支持 runtime 的预览兜底；更长期的设计目标，是把框架差异收敛在 adapter 层里，让 policy、approval、audit 和 guarded execution 这套模型可以被更多 runtime 复用。
 
 ## 产品方向
 
 AgentFirewall 的方向不是为每个框架单独造一个安全产品，而是做一个共享的 runtime firewall 内核，再给不同 runtime 暴露对应的 adapter 入口。
 
-`1.1.0` 当前承诺的是：
+`1.2.0` 当前承诺的是：
 
-- 一个官方支持的 LangGraph adapter
-- 两条文档化的 preview runtime path：OpenAI Agents SDK 和 generic guarded wrappers
-- LangGraph 官方 guarded shell、HTTP、文件读、文件写工具
+- 两个官方支持的 adapter：LangGraph 和 OpenAI Agents SDK
+- 一条文档化的 preview runtime path：generic guarded wrappers
+- 两条官方 adapter 路径都提供 guarded shell、HTTP、文件读、文件写工具
 - 在官方路径上共享同一套 policy、approval、audit、conformance 和 `log-only` 行为
 
 后续扩展路径是：
@@ -218,7 +218,7 @@ AgentFirewall 的方向不是为每个框架单独造一个安全产品，而是
 
 具体路线见 [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md)，宣传口径见 [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md)，当前产品状态和还差什么见 [`docs/strategy/PRODUCT_STATUS.md`](./docs/strategy/PRODUCT_STATUS.md)。
 
-如果是贡献者在看下一条 adapter 该怎么推进，建议直接从 [`docs/strategy/OPENAI_AGENTS_ADAPTER_PLAN.md`](./docs/strategy/OPENAI_AGENTS_ADAPTER_PLAN.md) 开始。这份文档是 `1.2` 候选路径的开发计划，不代表 OpenAI Agents 已经成为官方支持的 adapter。
+如果是贡献者在看 adapter 扩展该怎么推进，建议直接从 [`docs/strategy/OPENAI_AGENTS_ADAPTER_PLAN.md`](./docs/strategy/OPENAI_AGENTS_ADAPTER_PLAN.md) 开始。这份文档现在记录的是 OpenAI Agents 这条路径如何被收窄、验证并提升为第二个官方 adapter。
 
 如果你今天还不在 LangGraph 上，也可以先跑 `python examples/generic_tool_dispatcher.py` 看低层 guarded wrapper 的本地预览路径，或者运行 `python -m agentfirewall.evals.generic` 看这条路径的本地证据。现在这条路径会单独作为 preview runtime support 被记录，但它还不是官方 adapter contract。
 
@@ -299,7 +299,7 @@ python examples/langgraph_quickstart.py  # 本地冒烟验证，不需要 API ke
 python examples/langgraph_trial_run.py   # 10 个多步骤工作流追踪
 python -m agentfirewall.evals.langgraph  # 19 个面向任务的 eval case
 python -m agentfirewall.evals.generic    # generic wrapper 预览路径证据
-python -m agentfirewall.evals.openai_agents  # OpenAI Agents 预览路径证据
+python -m agentfirewall.evals.openai_agents  # OpenAI Agents 官方 adapter 证据
 python -m agentfirewall.runtime_support --include-evidence  # JSON 支持清单
 python -m pytest tests/ -v               # 完整本地回归测试
 ```
@@ -312,35 +312,34 @@ Eval 汇总: total=19, passed=19, failed=0
 
 ## 当前状态
 
-`1.1.0` — 当前版本。LangGraph 仍然是第一个官方 runtime adapter，同时新增了 OpenAI Agents SDK 和 generic wrappers 的预览 runtime 支持。
+`1.2.0` — 当前版本。LangGraph 和 OpenAI Agents SDK 现在是两条官方 runtime adapter，generic wrappers 继续作为预览 runtime 路径。
 
 官方支持的：
 
 - `agentfirewall`：核心 firewall 构造和运行时无关类型
 - `agentfirewall.langgraph`：官方 LangGraph adapter（shell、HTTP、文件读写工具）
+- `agentfirewall.openai_agents`：官方 OpenAI Agents adapter（shell、HTTP、文件读写工具）
 - `agentfirewall.approval`：审批处理（终端交互式、静态规则、自定义回调）
 - `ConsoleAuditSink` 实时可见，`MultiAuditSink` 组合多个 sink
 - 7 条内置规则，37 种注入模式、28 种命令模式、27 种文件路径模式
-- 打包的 eval 套件（19 个 case）和本地试运行工作流（10 个场景）
+- 打包的 LangGraph / OpenAI Agents eval 套件和本地试运行工作流
 
 预览支持的：
 
-- `agentfirewall.openai_agents`：function_tool-first 的 OpenAI Agents 候选路径
 - `agentfirewall.generic`：面向未官方支持 runtime 的低层 guarded wrappers
 - `agentfirewall.runtime_support`：导出支持清单、能力矩阵和本地证据
 
 下一阶段重点：
 
 - adapter 兼容性契约和一致性测试
-- 把 OpenAI Agents 候选路径推进到 release-gated 的第二官方 adapter 决策
 - 基于共享内核的 MCP client/server 支持
 - 给还没有官方 adapter 的 runtime 继续降低采用门槛
 - 保持 runtime support inventory 和 evidence 与站点/文档同步
 
-1.1.0 暂不包含的：
+1.2.0 暂不包含的：
 
-- 第二个官方 runtime adapter
-- 超出文档化 preview 边界的 OpenAI Agents 全量支持
+- 超出文档化 function_tool-first 边界的 OpenAI Agents 全量支持
+- LangGraph 和 OpenAI Agents 之外的更多官方 runtime adapter
 - hosted OpenAI tools、MCP servers、handoffs
 - reviewer UI 或集中式审批服务
 - 超越默认策略包的生产级误报调优

@@ -1,4 +1,4 @@
-"""Experimental OpenAI Agents SDK API for AgentFirewall."""
+"""Official OpenAI Agents SDK API for AgentFirewall."""
 
 from .integrations.openai_agents import (
     OpenAIAgentsRuntimeBundle,

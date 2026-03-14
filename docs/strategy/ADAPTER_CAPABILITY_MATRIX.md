@@ -56,12 +56,13 @@ The source of truth for official adapter rows and registry-backed eval evidence 
 | Adapter | Status | Prompt | Tool Call | Shell | File Read | File Write | HTTP | Runtime Context | Review | Log Only |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `agentfirewall.langgraph` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` |
+| `agentfirewall.openai_agents` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` | `supported` |
 
-## Current `1.1.0` Interpretation
+## Current `1.2.0` Interpretation
 
-For `1.1.0`, only the `agentfirewall.langgraph` row is part of the official supported adapter contract.
+For `1.2.0`, both `agentfirewall.langgraph` and `agentfirewall.openai_agents` are part of the official supported adapter contract.
 
-Preview runtime support for `openai_agents` and `generic_wrappers` is exported separately through `agentfirewall.runtime_support`, but those rows are not yet part of the official adapter matrix.
+Preview runtime support for `generic_wrappers` is exported separately through `agentfirewall.runtime_support`, but that row is not part of the official adapter matrix.
 
 ## Planning Direction Only
 
@@ -69,7 +70,6 @@ These rows are roadmap guidance, not an adapter contract:
 
 | Future Path | Status | Prompt | Tool Call | Shell | File Read | File Write | HTTP | Runtime Context | Review | Log Only |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Second official adapter | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` |
 | MCP client path | `planned` | `planned` | `planned` | `not_supported` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` |
 | MCP server path | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` | `planned` |
 
