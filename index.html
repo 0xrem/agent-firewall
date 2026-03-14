@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AgentFirewall - Runtime Firewall for AI Agents</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%2358a6ff' d='M24 4l16 6v11c0 10-6.8 18.9-16 23-9.2-4.1-16-13-16-23V10l16-6z'/%3E%3Cpath fill='%230d1117' d='M24 12l9 3.4v6.5c0 5.8-3.7 11.1-9 13.7-5.3-2.6-9-7.9-9-13.7v-6.5L24 12z'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +19,7 @@
             </a>
             <div class="nav-links">
                 <a href="#features">Features</a>
+                <a href="#coverage">Coverage</a>
                 <a href="#how-it-works">How It Works</a>
                 <a href="#install">Install</a>
                 <a href="#docs">Docs</a>
@@ -34,7 +36,7 @@
     <main>
         <section class="hero">
             <div class="container">
-                <div class="hero-badge">v1.0.0 Now Available</div>
+                <div class="hero-badge">Live Runtime Support Manifest</div>
                 <h1 class="hero-title">
                     Runtime Firewall for<br>
                     <span class="gradient-text">Tool-Using AI Systems</span>
@@ -51,16 +53,16 @@
                 </div>
                 <div class="hero-stats">
                     <div class="stat">
-                        <span class="stat-value">2</span>
-                        <span class="stat-label">Runtime Adapters</span>
+                        <span class="stat-value" data-stat="support-paths">3</span>
+                        <span class="stat-label">Support Paths</span>
                     </div>
                     <div class="stat">
-                        <span class="stat-value">4</span>
-                        <span class="stat-label">Action Types</span>
+                        <span class="stat-value" data-stat="official-adapters">1</span>
+                        <span class="stat-label">Official Adapter</span>
                     </div>
                     <div class="stat">
-                        <span class="stat-value">100%</span>
-                        <span class="stat-label">Audit Trail</span>
+                        <span class="stat-value" data-stat="local-evals">35</span>
+                        <span class="stat-label">Local Eval Cases</span>
                     </div>
                 </div>
             </div>
@@ -88,9 +90,27 @@
                     <div class="feature-card">
                         <div class="feature-icon">🔌</div>
                         <h3>Multi-Runtime Support</h3>
-                        <p>LangGraph and OpenAI Agents SDK adapters with more coming soon</p>
+                        <p>Official and preview runtime paths exported from the core engine with evidence-backed coverage data</p>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <section id="coverage" class="coverage-section">
+            <div class="container">
+                <h2 class="section-title">Live Runtime Coverage</h2>
+                <p class="section-subtitle">
+                    This section is driven by the checked-in runtime support manifest, not by hardcoded marketing copy.
+                </p>
+                <div id="support-summary" class="support-summary">
+                    Loading support inventory and evidence...
+                </div>
+                <div id="support-grid" class="support-grid"></div>
+                <div class="coverage-evidence-header">
+                    <h3>Packaged Local Evidence</h3>
+                    <p>Each card below reflects the compact eval and conformance summary exported by the core engine.</p>
+                </div>
+                <div id="evidence-grid" class="evidence-grid"></div>
             </div>
         </section>
 
@@ -189,6 +209,11 @@
                         <div class="doc-icon">🎯</div>
                         <h3>Strategy Docs</h3>
                         <p>Product direction, implementation details, roadmaps</p>
+                    </a>
+                    <a href="https://github.com/0xrem/agent-firewall/blob/main/docs/assets/runtime-support-manifest.json" target="_blank" class="doc-card">
+                        <div class="doc-icon">🧭</div>
+                        <h3>Support Manifest</h3>
+                        <p>Machine-readable runtime inventory, capability matrix, and packaged evidence snapshot</p>
                     </a>
                     <a href="https://pypi.org/project/agentfirewall/" target="_blank" class="doc-card">
                         <div class="doc-icon">📦</div>
