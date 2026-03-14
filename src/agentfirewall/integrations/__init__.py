@@ -23,6 +23,13 @@ from .langgraph import (
     create_guarded_langgraph_shell_tool,
     get_langgraph_adapter_spec,
 )
+from .openai_agents import (
+    OpenAIAgentsEventTranslator,
+    OpenAIAgentsFirewallHooks,
+    create_firewalled_openai_agents_agent,
+    create_guarded_openai_agents_function_tool,
+    get_openai_agents_adapter_spec,
+)
 from .registry import (
     export_official_adapter_matrix,
     export_official_adapter_inventory,
@@ -51,13 +58,18 @@ __all__ = [
     "create_guarded_langgraph_file_writer_tool",
     "create_guarded_langgraph_http_tool",
     "create_guarded_langgraph_shell_tool",
+    "create_firewalled_openai_agents_agent",
+    "create_guarded_openai_agents_function_tool",
     "export_official_adapter_inventory",
     "export_official_adapter_matrix",
     "get_official_adapter",
     "get_official_adapter_spec",
     "get_langgraph_adapter_spec",
+    "get_openai_agents_adapter_spec",
     "list_official_adapters",
     "list_official_adapter_specs",
+    "OpenAIAgentsEventTranslator",
+    "OpenAIAgentsFirewallHooks",
     "resolve_adapter_firewall",
     "run_official_adapter_eval_suite",
     "validate_eval_summary",

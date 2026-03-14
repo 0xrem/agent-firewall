@@ -37,6 +37,9 @@ langgraph = [
   "langchain>=1,<2",
   "langgraph>=1,<2",
 ]
+openai-agents = [
+  "openai-agents>=0.12,<1",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
