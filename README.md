@@ -210,6 +210,8 @@ Expansion path:
 
 See [`docs/strategy/MULTI_RUNTIME_ROADMAP.md`](./docs/strategy/MULTI_RUNTIME_ROADMAP.md) for the expansion plan, [`docs/strategy/POSITIONING.md`](./docs/strategy/POSITIONING.md) for messaging guardrails, and [`docs/strategy/PRODUCT_STATUS.md`](./docs/strategy/PRODUCT_STATUS.md) for a blunt status check on what is solved today versus what still needs to be proved.
 
+Contributors working on the next adapter candidate should start with [`docs/strategy/OPENAI_AGENTS_ADAPTER_PLAN.md`](./docs/strategy/OPENAI_AGENTS_ADAPTER_PLAN.md). That document is a developer plan for the `1.2` candidate path, not a statement that OpenAI Agents is already an official supported adapter.
+
 Need a non-LangGraph local preview today? Run `python examples/generic_tool_dispatcher.py` to see the low-level guarded wrapper path, or `python -m agentfirewall.evals.generic` to inspect its packaged local evidence. That path is now tracked separately as preview runtime support, but it is still not an official adapter contract.
 
 ## Built-in Rules

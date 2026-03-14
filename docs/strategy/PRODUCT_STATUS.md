@@ -43,7 +43,7 @@ This is already useful for:
 | Shared runtime firewall core | `strong` | Policy, approval, audit, enforcers, and runtime context are adapter-oriented |
 | Adapter contract and release evidence | `strong` | Capability matrix, conformance, eval expectations, and release gate are in-repo |
 | Lightweight non-LangGraph adoption | `partial` | Low-level wrappers exist, now with packaged eval evidence and preview-runtime inventory, but adoption still needs clearer onboarding |
-| Multi-runtime proof | `not_done` | The second official adapter has not shipped yet |
+| Multi-runtime proof | `in_progress` | An experimental OpenAI Agents candidate exists, but the second official adapter is not shipped or release-gated yet |
 | Production trust across unknown workloads | `early` | False-positive pressure and real deployment evidence still need work |
 
 ## How Much Is Left
@@ -70,6 +70,11 @@ Need:
 
 - a second official adapter
 - a credible generic wrapper path for unsupported runtimes
+
+Current status:
+
+- the OpenAI Agents SDK now has an experimental `function_tool-first` adapter skeleton
+- that candidate still needs packaged evals, helper surfaces, and release-gate evidence before it can count as the second official adapter
 
 Why it matters:
 
@@ -103,9 +108,29 @@ Why it matters:
 
 1. Finish `1.1` packaging and evidence so the adapter contract is undeniably real.
 2. Make the generic wrapper path easier to use without claiming a second official adapter yet.
-3. Ship the second official adapter.
+3. Turn the OpenAI Agents candidate path into a release-gated second-adapter decision, not just another experimental integration.
 4. Expand evals and false-positive pressure around real workflows.
 5. Only then widen into MCP-oriented paths and broader deployment patterns.
+
+## Current Second-Adapter Candidate
+
+The current `1.2` candidate is OpenAI Agents SDK on a deliberately narrow scope:
+
+- `Agent`
+- local `FunctionTool`
+- prompt inspection before model execution
+- function-tool interception before local execution
+- shared `review`, `block`, and `log-only` behavior
+- runtime-context propagation into shared shell, file, and HTTP enforcers
+
+What still has to happen before that candidate becomes official:
+
+- ship packaged local evals
+- ship OpenAI helper builders for shell, file, and HTTP
+- add release-gate expectations and runtime-support updates
+- document the supported and unsupported boundary in one place
+
+Developers working on this track should start with [`OPENAI_AGENTS_ADAPTER_PLAN.md`](./OPENAI_AGENTS_ADAPTER_PLAN.md).
 
 ## What Would Mean "We Are On Track"
 

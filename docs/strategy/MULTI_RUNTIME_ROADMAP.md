@@ -132,6 +132,12 @@ Detailed execution plan:
 
 - ship a second official runtime adapter
 - keep policy and audit behavior aligned with LangGraph
+- start with OpenAI Agents SDK as the `function_tool-first` candidate path
+- avoid hosted tools, MCP, and handoffs until the local evidence package exists
+
+Detailed execution plan:
+
+- see [`OPENAI_AGENTS_ADAPTER_PLAN.md`](./OPENAI_AGENTS_ADAPTER_PLAN.md)
 
 ### 1.3
 
