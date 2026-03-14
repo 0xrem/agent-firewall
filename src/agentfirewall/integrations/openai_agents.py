@@ -17,6 +17,7 @@ from ..enforcers import (
     GuardedSubprocessRunner,
 )
 from ..events import EventContext
+from ..exceptions import FirewallViolation, ReviewRequired
 from ..firewall import AgentFirewall
 from ..policy_packs import PolicyPackConfig
 from ..runtime_context import (
@@ -33,10 +34,11 @@ from .contracts import (
 )
 
 try:
-    from agents import FunctionTool, function_tool
+    from agents import FunctionTool, UserError, function_tool
     from agents.lifecycle import AgentHooksBase
 except ImportError:  # pragma: no cover - exercised when optional deps are absent.
     FunctionTool = Any  # type: ignore[assignment]
+    UserError = RuntimeError  # type: ignore[assignment]
 
     def function_tool(*args: Any, **kwargs: Any) -> Any:  # type: ignore[no-redef]
         raise ImportError
@@ -152,6 +154,20 @@ def _maybe_await(value: Any) -> Any:
     if inspect.isawaitable(value):
         return value
     return None
+
+
+def _raise_agentfirewall_tool_error(tool_name: str, error: Exception) -> None:
+    """Raise a stable SDK-level error message for AgentFirewall tool failures."""
+
+    if isinstance(error, ReviewRequired):
+        raise UserError(
+            f"AgentFirewall review required for tool {tool_name}: {error}"
+        ) from error
+    if isinstance(error, FirewallViolation):
+        raise UserError(
+            f"AgentFirewall blocked tool {tool_name}: {error}"
+        ) from error
+    raise error
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -584,11 +600,14 @@ def create_guarded_openai_agents_function_tool(
     original_invoke_tool = original_tool.on_invoke_tool
 
     async def guarded_invoke_tool(context: Any, input_json: str) -> Any:
-        event = translator.tool_event(original_tool.name, input_json)
-        resolved_firewall.enforce(event)
-        metadata = translator.tool_runtime_metadata(context)
-        with runtime_event_context(**metadata):
-            return await original_invoke_tool(context, input_json)
+        try:
+            event = translator.tool_event(original_tool.name, input_json)
+            resolved_firewall.enforce(event)
+            metadata = translator.tool_runtime_metadata(context)
+            with runtime_event_context(**metadata):
+                return await original_invoke_tool(context, input_json)
+        except (ReviewRequired, FirewallViolation) as exc:
+            _raise_agentfirewall_tool_error(original_tool.name, exc)
 
     guarded_tool = dataclasses.replace(
         original_tool,

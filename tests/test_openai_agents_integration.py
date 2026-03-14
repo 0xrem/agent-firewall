@@ -24,7 +24,7 @@ from agentfirewall.policy_packs import build_builtin_policy_engine, named_policy
 OPENAI_AGENTS_AVAILABLE = bool(importlib.util.find_spec("agents"))
 
 if OPENAI_AGENTS_AVAILABLE:
-    from agents import Agent, Runner, WebSearchTool, function_tool
+    from agents import Agent, Runner, UserError, WebSearchTool, function_tool
     from agents.items import ModelResponse
     from agents.models.interface import Model
     from agents.run_config import RunConfig
@@ -298,6 +298,115 @@ class OpenAIAgentsIntegrationTests(unittest.TestCase):
                 "tool_call_id": "call_shell_approved",
                 "tool_event_source": "openai_agents.tool",
             },
+        )
+
+    def test_openai_agents_reviewed_tool_raises_stable_agentfirewall_user_error(self) -> None:
+        audit_sink = InMemoryAuditSink()
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+        )
+
+        @function_tool(failure_error_function=None)
+        def shell(command: str) -> str:
+            return f"shell:{command}"
+
+        model = SequentialFakeModel(
+            [
+                tool_call_output(
+                    call_id="call_shell_review",
+                    name="shell",
+                    arguments='{"command":"ls"}',
+                ),
+                final_text_output("done"),
+            ]
+        )
+        agent = Agent(
+            name="demo",
+            instructions="Be helpful.",
+            tools=[shell],
+            model=model,
+        )
+        firewalled = create_firewalled_openai_agents_agent(
+            agent=agent,
+            firewall=firewall,
+        )
+
+        with self.assertRaises(UserError) as exc_info:
+            Runner.run_sync(
+                firewalled,
+                "Open a shell and list files.",
+                run_config=RunConfig(tracing_disabled=True),
+            )
+
+        self.assertIn(
+            "AgentFirewall review required for tool shell:",
+            str(exc_info.exception),
+        )
+        self.assertEqual(
+            [entry.decision.action.value for entry in audit_sink.entries],
+            ["allow", "review"],
+        )
+
+    def test_openai_agents_nested_block_raises_stable_agentfirewall_user_error(self) -> None:
+        audit_sink = InMemoryAuditSink()
+        firewall = AgentFirewall(
+            policy=build_builtin_policy_engine(named_policy_pack("default")),
+            audit_sink=audit_sink,
+            approval_handler=lambda request: True,
+        )
+        runner = GuardedSubprocessRunner(
+            firewall=firewall,
+            runner=self._fake_runner([]),
+            source="openai_agents.command",
+        )
+
+        @function_tool(failure_error_function=None)
+        def shell(command: str) -> str:
+            result = runner.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            return result.stdout.strip()
+
+        model = SequentialFakeModel(
+            [
+                tool_call_output(
+                    call_id="call_shell_blocked",
+                    name="shell",
+                    arguments='{"command":"rm -rf /tmp/*"}',
+                ),
+                final_text_output("done"),
+            ]
+        )
+        agent = Agent(
+            name="demo",
+            instructions="Be helpful.",
+            tools=[shell],
+            model=model,
+        )
+        firewalled = create_firewalled_openai_agents_agent(
+            agent=agent,
+            firewall=firewall,
+        )
+
+        with self.assertRaises(UserError) as exc_info:
+            Runner.run_sync(
+                firewalled,
+                "Delete all files in /tmp.",
+                run_config=RunConfig(tracing_disabled=True),
+            )
+
+        self.assertIn(
+            "AgentFirewall blocked tool shell:",
+            str(exc_info.exception),
+        )
+        self.assertEqual(
+            [entry.decision.action.value for entry in audit_sink.entries],
+            ["allow", "review", "allow", "block"],
         )
 
     def test_openai_agents_guarded_tool_rejects_sdk_needs_approval(self) -> None:
