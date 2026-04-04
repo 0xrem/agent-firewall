@@ -27,6 +27,7 @@ class AdapterCapability(str, Enum):
     FILE_READ_ENFORCEMENT = "file_read_enforcement"
     FILE_WRITE_ENFORCEMENT = "file_write_enforcement"
     HTTP_ENFORCEMENT = "http_enforcement"
+    RESOURCE_READ_INTERCEPTION = "resource_read_interception"
     RUNTIME_CONTEXT_CORRELATION = "runtime_context_correlation"
     REVIEW_SEMANTICS = "review_semantics"
     LOG_ONLY_SEMANTICS = "log_only_semantics"
@@ -39,6 +40,7 @@ OFFICIAL_ADAPTER_CAPABILITY_ORDER: tuple[AdapterCapability, ...] = (
     AdapterCapability.FILE_READ_ENFORCEMENT,
     AdapterCapability.FILE_WRITE_ENFORCEMENT,
     AdapterCapability.HTTP_ENFORCEMENT,
+    AdapterCapability.RESOURCE_READ_INTERCEPTION,
     AdapterCapability.RUNTIME_CONTEXT_CORRELATION,
     AdapterCapability.REVIEW_SEMANTICS,
     AdapterCapability.LOG_ONLY_SEMANTICS,

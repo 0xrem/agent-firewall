@@ -19,6 +19,7 @@ class EventKind(str, Enum):
     COMMAND = "command"
     FILE_ACCESS = "file_access"
     HTTP_REQUEST = "http_request"
+    RESOURCE_ACCESS = "resource_access"
 
 
 def _command_to_text(command: str | Iterable[str]) -> str:
@@ -157,6 +158,28 @@ class EventContext:
                 "method": normalized_method,
                 "scheme": parsed_url.scheme.lower(),
                 "hostname": (parsed_url.hostname or "").lower(),
+            },
+            source=source,
+        )
+
+    @classmethod
+    def resource_access(
+        cls,
+        uri: str,
+        *,
+        server_name: str | None = None,
+        mime_type: str | None = None,
+        source: str = "agent",
+    ) -> "EventContext":
+        parsed_uri = urlparse(uri)
+        return cls(
+            kind=EventKind.RESOURCE_ACCESS,
+            operation="read",
+            payload={
+                "uri": uri,
+                "scheme": parsed_uri.scheme.lower(),
+                "server_name": server_name,
+                "mime_type": mime_type,
             },
             source=source,
         )

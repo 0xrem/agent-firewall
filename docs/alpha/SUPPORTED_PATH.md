@@ -51,9 +51,9 @@ Supported OpenAI Agents boundary:
 
 ## Documented Preview Runtime Paths
 
-`1.2.0` keeps one preview runtime path.
+The repo currently documents three preview or evidence-only runtime paths.
 
-It is deliberately real enough to evaluate locally, but it is not part of the official adapter contract yet.
+They are deliberately real enough to evaluate locally, but they are not part of the official adapter contract.
 
 ### Preview Runtime: Generic Wrappers
 
@@ -75,6 +75,19 @@ Current boundary:
 - shell, file, and HTTP enforcement are available through shared guarded wrappers
 - packaged local evals are available under `python -m agentfirewall.evals.generic`
 - this path is preview runtime support, not an official adapter contract
+
+### Experimental Local MCP Preview
+
+The repo also includes transport-agnostic local loopback preview helpers under `agentfirewall.mcp`.
+
+Current boundary:
+
+- this is experimental local preview only
+- it is not an official adapter contract
+- it does not mean MCP is broadly supported in production today
+- packaged local evals are available under `python -m agentfirewall.evals.mcp_client`
+- packaged local evals are available under `python -m agentfirewall.evals.mcp_server`
+- the shared core can now represent `resource_access` directly instead of faking MCP resources as file or HTTP events
 
 ### Runtime Support Inventory
 
@@ -126,6 +139,17 @@ This keeps one explicit firewall instance across:
 - audit recording for each decision
 - runtime-context correlation from guarded side effects back to the originating tool call
 
+## Adoption And Trust Docs
+
+Use these alongside the supported API surface:
+
+- quick first run: [`../adoption/QUICKSTART_60S.md`](../adoption/QUICKSTART_60S.md)
+- `log-only` rollout: [`../adoption/LOG_ONLY_ROLLOUT.md`](../adoption/LOG_ONLY_ROLLOUT.md)
+- fit check: [`../adoption/WHO_SHOULD_USE.md`](../adoption/WHO_SHOULD_USE.md)
+- false positives: [`../trust/FALSE_POSITIVES.md`](../trust/FALSE_POSITIVES.md)
+- policy tuning: [`../trust/POLICY_TUNING.md`](../trust/POLICY_TUNING.md)
+- overhead notes: [`../trust/BENCHMARKS.md`](../trust/BENCHMARKS.md)
+
 ## Approval Path
 
 By default, a `review` decision raises `ReviewRequired` on enforced surfaces.
@@ -172,14 +196,18 @@ Custom approval callbacks are still supported, but `StaticApprovalHandler` is th
 ```bash
 source venv/bin/activate
 python examples/attack_scenarios.py
+python examples/log_only_rollout.py
+python examples/policy_reuse_demo.py
 python examples/langgraph_quickstart.py
 python examples/langgraph_agent.py
 python examples/langgraph_trial_run.py
 python -m agentfirewall.evals.langgraph
 python -m agentfirewall.evals.generic
 python -m agentfirewall.evals.openai_agents
+python -m agentfirewall.evals.mcp_client
+python -m agentfirewall.evals.mcp_server
 python -m agentfirewall.runtime_support --include-evidence
-python -m pytest tests/ -v
+python -m unittest discover -s tests -q
 ```
 
 The trial runner and eval runner both emit ordered traces. For guarded shell, HTTP, and file events, those traces include `runtime_context` metadata such as the originating `tool_name` and `tool_call_id`.
@@ -198,12 +226,13 @@ python -m agentfirewall.runtime_support --include-evidence
 
 For `log-only` flows, trace entries preserve `decision_metadata.original_action` so a user can see whether a step would have been reviewed or blocked before turning on enforcement.
 
-The packaged LangGraph eval suite covers 19 task-oriented local cases, the OpenAI Agents official suite covers 9 local cases, and the generic preview suite covers 7 local cases.
+The packaged LangGraph eval suite covers 19 task-oriented local cases, the OpenAI Agents official suite covers 11 local cases, the generic preview suite covers 9 local cases, the MCP client preview suite covers 8 local cases, and the MCP server preview suite covers 6 local cases.
 
 ## What This Contract Does Not Promise Yet
 
 - a built-in reviewer UI
 - a centralized approval service
 - official runtime adapters beyond LangGraph and OpenAI Agents SDK
-- hosted OpenAI tools, MCP servers, or handoffs
+- hosted OpenAI tools or handoffs
+- broad MCP compatibility claims beyond the local experimental preview
 - production-ready false-positive tuning

@@ -111,6 +111,12 @@ def _validate_declared_capability_coverage(
         (AdapterCapability.FILE_READ_ENFORCEMENT, "file_read_coverage", "file_access", "read"),
         (AdapterCapability.FILE_WRITE_ENFORCEMENT, "file_write_coverage", "file_access", "write"),
         (AdapterCapability.HTTP_ENFORCEMENT, "http_coverage", "http_request", None),
+        (
+            AdapterCapability.RESOURCE_READ_INTERCEPTION,
+            "resource_read_coverage",
+            "resource_access",
+            "read",
+        ),
     )
     for capability, check_name, event_kind, event_operation in checks:
         if not spec.supports(capability):

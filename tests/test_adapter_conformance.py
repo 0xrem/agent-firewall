@@ -91,6 +91,7 @@ class AdapterContractTests(unittest.TestCase):
         self.assertTrue(spec.supports(AdapterCapability.FILE_READ_ENFORCEMENT))
         self.assertTrue(spec.supports(AdapterCapability.FILE_WRITE_ENFORCEMENT))
         self.assertTrue(spec.supports(AdapterCapability.HTTP_ENFORCEMENT))
+        self.assertFalse(spec.supports(AdapterCapability.RESOURCE_READ_INTERCEPTION))
         self.assertTrue(spec.supports(AdapterCapability.RUNTIME_CONTEXT_CORRELATION))
         self.assertTrue(spec.supports(AdapterCapability.REVIEW_SEMANTICS))
         self.assertTrue(spec.supports(AdapterCapability.LOG_ONLY_SEMANTICS))
@@ -111,6 +112,7 @@ class AdapterContractTests(unittest.TestCase):
         self.assertTrue(spec.supports(AdapterCapability.FILE_READ_ENFORCEMENT))
         self.assertTrue(spec.supports(AdapterCapability.FILE_WRITE_ENFORCEMENT))
         self.assertTrue(spec.supports(AdapterCapability.HTTP_ENFORCEMENT))
+        self.assertFalse(spec.supports(AdapterCapability.RESOURCE_READ_INTERCEPTION))
         self.assertTrue(spec.supports(AdapterCapability.RUNTIME_CONTEXT_CORRELATION))
         self.assertTrue(spec.supports(AdapterCapability.REVIEW_SEMANTICS))
         self.assertTrue(spec.supports(AdapterCapability.LOG_ONLY_SEMANTICS))
@@ -124,7 +126,14 @@ class AdapterContractTests(unittest.TestCase):
             tuple(support_map.keys()),
             tuple(capability.value for capability in OFFICIAL_ADAPTER_CAPABILITY_ORDER),
         )
-        self.assertTrue(all(value == "supported" for value in support_map.values()))
+        self.assertEqual(support_map["resource_read_interception"], "not_supported")
+        self.assertTrue(
+            all(
+                value == "supported"
+                for key, value in support_map.items()
+                if key != "resource_read_interception"
+            )
+        )
 
     def test_export_official_adapter_matrix_returns_machine_readable_rows(self) -> None:
         matrix = export_official_adapter_matrix()
@@ -140,6 +149,8 @@ class AdapterContractTests(unittest.TestCase):
         self.assertEqual(rows["openai_agents"]["prompt_inspection"], "supported")
         self.assertEqual(rows["langgraph"]["log_only_semantics"], "supported")
         self.assertEqual(rows["openai_agents"]["log_only_semantics"], "supported")
+        self.assertEqual(rows["langgraph"]["resource_read_interception"], "not_supported")
+        self.assertEqual(rows["openai_agents"]["resource_read_interception"], "not_supported")
 
     def test_missing_runtime_context_fields_reports_contract_gaps(self) -> None:
         self.assertEqual(
@@ -182,7 +193,7 @@ class AdapterContractTests(unittest.TestCase):
     def test_runtime_context_contract_event_kinds_match_side_effect_surfaces(self) -> None:
         self.assertEqual(
             SIDE_EFFECT_RUNTIME_EVENT_KINDS,
-            ("command", "file_access", "http_request"),
+            ("command", "file_access", "http_request", "resource_access"),
         )
 
 
@@ -318,7 +329,7 @@ class OpenAIAgentsConformanceTests(unittest.TestCase):
         summary = run_official_adapter_eval_suite("openai_agents")
 
         self.assertEqual(summary.failed, 0)
-        self.assertEqual(summary.total, 9)
+        self.assertEqual(summary.total, 11)
 
     def test_official_adapter_registry_can_validate_openai_agents_conformance(self) -> None:
         report = validate_official_adapter_conformance("openai_agents")

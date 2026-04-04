@@ -26,6 +26,7 @@ SIDE_EFFECT_RUNTIME_EVENT_KINDS: tuple[str, ...] = (
     "command",
     "file_access",
     "http_request",
+    "resource_access",
 )
 
 
@@ -96,6 +97,67 @@ def tool_runtime_context(
         tool_name=tool_name,
         tool_call_id=tool_call_id,
         tool_event_source=tool_event_source,
+        **metadata,
+    )
+    with runtime_event_context(**context):
+        yield
+
+
+def build_mcp_runtime_context(
+    *,
+    runtime: str,
+    tool_name: str | None = None,
+    tool_call_id: str | None = None,
+    tool_event_source: str | None = None,
+    protocol: str = "mcp",
+    mcp_direction: str | None = None,
+    mcp_server_name: str | None = None,
+    mcp_resource_uri: str | None = None,
+    mcp_operation: str | None = None,
+    **metadata: Any,
+) -> dict[str, Any]:
+    """Build runtime context enriched with optional MCP metadata."""
+
+    return build_tool_runtime_context(
+        runtime=runtime,
+        tool_name=tool_name,
+        tool_call_id=tool_call_id,
+        tool_event_source=tool_event_source,
+        protocol=protocol,
+        mcp_direction=mcp_direction,
+        mcp_server_name=mcp_server_name,
+        mcp_resource_uri=mcp_resource_uri,
+        mcp_operation=mcp_operation,
+        **metadata,
+    )
+
+
+@contextmanager
+def mcp_tool_runtime_context(
+    *,
+    runtime: str,
+    tool_name: str | None = None,
+    tool_call_id: str | None = None,
+    tool_event_source: str | None = None,
+    protocol: str = "mcp",
+    mcp_direction: str | None = None,
+    mcp_server_name: str | None = None,
+    mcp_resource_uri: str | None = None,
+    mcp_operation: str | None = None,
+    **metadata: Any,
+) -> Iterator[None]:
+    """Apply tool runtime context enriched with optional MCP metadata."""
+
+    context = build_mcp_runtime_context(
+        runtime=runtime,
+        tool_name=tool_name,
+        tool_call_id=tool_call_id,
+        tool_event_source=tool_event_source,
+        protocol=protocol,
+        mcp_direction=mcp_direction,
+        mcp_server_name=mcp_server_name,
+        mcp_resource_uri=mcp_resource_uri,
+        mcp_operation=mcp_operation,
         **metadata,
     )
     with runtime_event_context(**context):

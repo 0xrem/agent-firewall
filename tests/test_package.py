@@ -734,6 +734,20 @@ class PackageTests(unittest.TestCase):
                 str(payload["url"]),
                 method=str(payload.get("method", "GET")),
             )
+        if kind == "resource_access":
+            return EventContext.resource_access(
+                str(payload["uri"]),
+                server_name=(
+                    str(payload["server_name"])
+                    if payload.get("server_name") is not None
+                    else None
+                ),
+                mime_type=(
+                    str(payload["mime_type"])
+                    if payload.get("mime_type") is not None
+                    else None
+                ),
+            )
         if kind == "tool_call":
             return EventContext.tool_call(
                 str(payload["name"]),
@@ -938,6 +952,25 @@ class PackageTests(unittest.TestCase):
             EventContext.file_access("/tmp/output.txt", mode="write")
         )
         self.assertEqual(decision.action, DecisionAction.ALLOW)
+
+    def test_resource_access_event_normalizes_payload(self) -> None:
+        event = EventContext.resource_access(
+            "mcp://docs/README.md",
+            server_name="docs",
+            mime_type="text/markdown",
+        )
+
+        self.assertEqual(event.kind.value, "resource_access")
+        self.assertEqual(event.operation, "read")
+        self.assertEqual(
+            event.payload,
+            {
+                "uri": "mcp://docs/README.md",
+                "scheme": "mcp",
+                "server_name": "docs",
+                "mime_type": "text/markdown",
+            },
+        )
 
 
 if __name__ == "__main__":

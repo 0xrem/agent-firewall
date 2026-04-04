@@ -188,9 +188,9 @@ _OFFICIAL_ADAPTERS: dict[str, OfficialAdapterDefinition] = {
         spec=get_openai_agents_adapter_spec(),
         eval_runner="agentfirewall.evals:run_openai_agents_eval_suite",
         eval_expectations=EvalSuiteExpectations(
-            total=9,
+            total=11,
             status_counts={
-                "completed": 4,
+                "completed": 6,
                 "blocked": 3,
                 "review_required": 2,
             },
@@ -204,6 +204,8 @@ _OFFICIAL_ADAPTERS: dict[str, OfficialAdapterDefinition] = {
                 "untrusted_host_attempt": 1,
                 "log_only_demonstration": 1,
                 "nested_side_effects_correlation": 1,
+                "repo_triage": 1,
+                "incident_triage": 1,
             },
             named_cases={
                 "safe_function_tool": "safe_function_tool",
@@ -215,6 +217,10 @@ _OFFICIAL_ADAPTERS: dict[str, OfficialAdapterDefinition] = {
                 "blocked_http": "untrusted_host_blocked",
                 "log_only_workflow": "log_only_workflow",
                 "nested_side_effects": "nested_side_effects",
+                "workflow_repo_triage": "workflow_status_then_safe_file_then_trusted_http",
+                "workflow_shell_then_file_then_http": (
+                    "workflow_shell_approved_then_safe_file_then_trusted_http"
+                ),
             },
         ),
     ),

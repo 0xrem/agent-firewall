@@ -293,6 +293,18 @@ def _build_tools_for_case(case: OpenAIAgentsEvalCase, firewall: Any) -> list[Any
 
         tools.append(calculator)
 
+    if "status" in tool_names:
+
+        @function_tool(
+            name_override="status",
+            description_override="Return a status string for the current workflow.",
+            failure_error_function=None,
+        )
+        def status(message: str) -> str:
+            return f"status:{message}"
+
+        tools.append(status)
+
     return tools
 
 

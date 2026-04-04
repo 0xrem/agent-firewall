@@ -172,5 +172,94 @@
       "allow",
       "log"
     ]
+  },
+  {
+    "name": "workflow_status_then_safe_file_then_trusted_http",
+    "task": "repo_triage",
+    "workflow_goal": "Complete a realistic repository-triage task across safe status, file, and trusted network steps in the generic wrapper path.",
+    "steps": [
+      {
+        "tool": "status",
+        "kwargs": {
+          "message": "ready"
+        }
+      },
+      {
+        "tool": "read_file",
+        "kwargs": {
+          "path": "README.md"
+        }
+      },
+      {
+        "tool": "http_request",
+        "kwargs": {
+          "url": "https://api.openai.com/v1/models",
+          "method": "GET"
+        }
+      }
+    ],
+    "expected_status": "completed",
+    "expected_final_action": "allow",
+    "expected_event_kinds": [
+      "tool_call",
+      "tool_call",
+      "file_access",
+      "tool_call",
+      "http_request"
+    ],
+    "expected_action_sequence": [
+      "allow",
+      "allow",
+      "allow",
+      "allow",
+      "allow"
+    ]
+  },
+  {
+    "name": "workflow_shell_approved_then_safe_file_then_trusted_http",
+    "task": "incident_triage",
+    "workflow_goal": "Allow an approved shell step, then continue through safe repo context gathering and a trusted API lookup in the generic wrapper path.",
+    "steps": [
+      {
+        "tool": "shell",
+        "kwargs": {
+          "command": "ls"
+        }
+      },
+      {
+        "tool": "read_file",
+        "kwargs": {
+          "path": "README.md"
+        }
+      },
+      {
+        "tool": "http_request",
+        "kwargs": {
+          "url": "https://api.openai.com/v1/models",
+          "method": "GET"
+        }
+      }
+    ],
+    "approval_outcome": "approve",
+    "expected_status": "completed",
+    "expected_final_action": "allow",
+    "expected_event_kinds": [
+      "tool_call",
+      "tool_call",
+      "command",
+      "tool_call",
+      "file_access",
+      "tool_call",
+      "http_request"
+    ],
+    "expected_action_sequence": [
+      "review",
+      "allow",
+      "allow",
+      "allow",
+      "allow",
+      "allow",
+      "allow"
+    ]
   }
 ]

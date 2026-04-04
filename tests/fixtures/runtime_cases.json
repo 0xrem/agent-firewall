@@ -80,5 +80,16 @@
       }
     },
     "expected_action": "block"
+  },
+  {
+    "name": "resource_access_default_allow",
+    "policy_pack": "default",
+    "event": {
+      "kind": "resource_access",
+      "uri": "mcp://docs/README.md",
+      "server_name": "docs",
+      "mime_type": "text/markdown"
+    },
+    "expected_action": "allow"
   }
 ]

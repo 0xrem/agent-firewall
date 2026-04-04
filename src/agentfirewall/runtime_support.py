@@ -153,15 +153,65 @@ def get_openai_agents_preview_runtime_spec() -> RuntimeAdapterSpec:
     return get_openai_agents_adapter_spec()
 
 
+def get_mcp_client_preview_runtime_spec() -> RuntimeAdapterSpec:
+    """Return the declared support contract for the MCP client preview path."""
+
+    return RuntimeAdapterSpec(
+        name="mcp_client",
+        module="agentfirewall.mcp",
+        support_level=AdapterSupportLevel.EXPERIMENTAL,
+        capabilities=capability_set(
+            AdapterCapability.TOOL_CALL_INTERCEPTION,
+            AdapterCapability.SHELL_ENFORCEMENT,
+            AdapterCapability.FILE_READ_ENFORCEMENT,
+            AdapterCapability.FILE_WRITE_ENFORCEMENT,
+            AdapterCapability.HTTP_ENFORCEMENT,
+            AdapterCapability.RESOURCE_READ_INTERCEPTION,
+            AdapterCapability.RUNTIME_CONTEXT_CORRELATION,
+            AdapterCapability.REVIEW_SEMANTICS,
+            AdapterCapability.LOG_ONLY_SEMANTICS,
+        ),
+        notes=(
+            "Experimental local MCP client loopback preview. "
+            "This is not an official adapter contract."
+        ),
+    )
+
+
+def get_mcp_server_preview_runtime_spec() -> RuntimeAdapterSpec:
+    """Return the declared support contract for the MCP server preview path."""
+
+    return RuntimeAdapterSpec(
+        name="mcp_server",
+        module="agentfirewall.mcp",
+        support_level=AdapterSupportLevel.EXPERIMENTAL,
+        capabilities=capability_set(
+            AdapterCapability.TOOL_CALL_INTERCEPTION,
+            AdapterCapability.SHELL_ENFORCEMENT,
+            AdapterCapability.FILE_READ_ENFORCEMENT,
+            AdapterCapability.FILE_WRITE_ENFORCEMENT,
+            AdapterCapability.HTTP_ENFORCEMENT,
+            AdapterCapability.RESOURCE_READ_INTERCEPTION,
+            AdapterCapability.RUNTIME_CONTEXT_CORRELATION,
+            AdapterCapability.REVIEW_SEMANTICS,
+            AdapterCapability.LOG_ONLY_SEMANTICS,
+        ),
+        notes=(
+            "Experimental local MCP server loopback preview. "
+            "This is not an official adapter contract."
+        ),
+    )
+
+
 _PREVIEW_RUNTIMES: dict[str, PreviewRuntimeDefinition] = {
     "generic_wrappers": PreviewRuntimeDefinition(
         spec=get_generic_preview_runtime_spec(),
         eval_runner="agentfirewall.evals:run_generic_eval_suite",
         eval_expectations=EvalSuiteExpectations(
-            total=7,
+            total=9,
             status_counts={
                 "blocked": 3,
-                "completed": 3,
+                "completed": 5,
                 "review_required": 1,
             },
             task_counts={
@@ -170,6 +220,8 @@ _PREVIEW_RUNTIMES: dict[str, PreviewRuntimeDefinition] = {
                 "secret_access": 1,
                 "credential_injection": 1,
                 "log_only_observability": 1,
+                "repo_triage": 1,
+                "incident_triage": 1,
             },
             named_cases={
                 "safe_status_tool": "safe_status_tool",
@@ -179,6 +231,70 @@ _PREVIEW_RUNTIMES: dict[str, PreviewRuntimeDefinition] = {
                 "blocked_sensitive_read": "guarded_file_blocks_sensitive_read",
                 "blocked_sensitive_write": "guarded_file_write_blocks_sensitive_path",
                 "log_only_workflow": "log_only_shell_then_blocked_http",
+                "workflow_repo_triage": "workflow_status_then_safe_file_then_trusted_http",
+                "workflow_shell_then_file_then_http": (
+                    "workflow_shell_approved_then_safe_file_then_trusted_http"
+                ),
+            },
+        ),
+    ),
+    "mcp_client": PreviewRuntimeDefinition(
+        spec=get_mcp_client_preview_runtime_spec(),
+        eval_runner="agentfirewall.evals:run_mcp_client_eval_suite",
+        eval_expectations=EvalSuiteExpectations(
+            total=8,
+            status_counts={
+                "blocked": 1,
+                "completed": 6,
+                "review_required": 1,
+            },
+            task_counts={
+                "operations_check": 1,
+                "repo_triage": 3,
+                "secret_access": 1,
+                "log_only_observability": 1,
+                "shell_access": 1,
+                "incident_triage": 1,
+            },
+            named_cases={
+                "safe_status_tool": "safe_status_tool",
+                "allowed_resource_read": "allowed_resource_read",
+                "review_required_tool": "shell_tool_review_without_handler",
+                "approved_shell": "shell_tool_approved",
+                "safe_file_roundtrip": "safe_file_roundtrip",
+                "blocked_private_resource": "blocked_private_resource",
+                "workflow_repo_triage": "workflow_status_then_resource_then_trusted_http",
+                "log_only_workflow": "log_only_private_resource_then_blocked_http",
+            },
+        ),
+    ),
+    "mcp_server": PreviewRuntimeDefinition(
+        spec=get_mcp_server_preview_runtime_spec(),
+        eval_runner="agentfirewall.evals:run_mcp_server_eval_suite",
+        eval_expectations=EvalSuiteExpectations(
+            total=6,
+            status_counts={
+                "blocked": 1,
+                "completed": 4,
+                "review_required": 1,
+            },
+            task_counts={
+                "operations_check": 1,
+                "secret_access": 1,
+                "incident_triage": 1,
+                "log_only_observability": 1,
+                "shell_access": 1,
+                "repo_triage": 1,
+            },
+            named_cases={
+                "safe_status_tool": "safe_status_tool",
+                "blocked_private_resource": "blocked_private_resource",
+                "review_required_tool": "shell_tool_review_without_handler",
+                "safe_file_roundtrip": "safe_file_roundtrip",
+                "workflow_shell_then_resource_then_http": (
+                    "workflow_shell_approved_then_resource_then_trusted_http"
+                ),
+                "log_only_workflow": "log_only_private_resource_then_blocked_http",
             },
         ),
     ),
@@ -509,6 +625,8 @@ __all__ = [
     "export_runtime_support_inventory",
     "export_runtime_support_matrix",
     "get_generic_preview_runtime_spec",
+    "get_mcp_client_preview_runtime_spec",
+    "get_mcp_server_preview_runtime_spec",
     "get_openai_agents_preview_runtime_spec",
     "get_preview_runtime",
     "list_preview_runtimes",
