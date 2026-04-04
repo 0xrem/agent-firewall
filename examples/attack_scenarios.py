@@ -307,7 +307,19 @@ def eval_summary() -> None:
     print()
 
 
+def print_intro() -> None:
+    print("=== Without AgentFirewall ===")
+    print("  prompt injection can steer the model")
+    print("  sensitive files can be opened")
+    print("  untrusted outbound requests can leave the machine")
+    print("  dangerous shell commands can run")
+    print()
+    print("=== With AgentFirewall ===")
+    print("  the same categories below are reviewed or blocked before execution")
+
+
 def main() -> None:
+    print_intro()
     scenario_prompt_injection()
     scenario_env_file_access()
     scenario_data_exfiltration()
